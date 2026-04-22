@@ -915,37 +915,50 @@ window.addEventListener('resize', applyMobileTabState);
 	const addBtn = el.querySelector('.add-to-top6');
 
 	addBtn.onclick = async (e) => {
- 	 e.stopPropagation();
- 	 const alreadyScheduled = scheduledToday().some(s => s.title === task.title);
+  e.stopPropagation();
 
- 	 if (alreadyScheduled) {
- 	   showToast('Already in Top 6');
-  	  return;
- 	 }
- 	 const nextSlot = [1,2,3,4,5,6].find(s => !getScheduledSlot(s));
+  // prevent double click while request is in flight
+  if (addBtn.disabled) return;
+  addBtn.disabled = true;
+  addBtn.style.opacity = '0.6';
 
-	  if (!nextSlot) {
-  	  showToast('Top 6 is full');
-  	  return;
-	  }
+  try {
+    const alreadyScheduled = scheduledToday().some(
+      s => s.title === task.title
+    );
 
-  await createItem({
-    type: 'schedule',
-    title: task.title,
-    priority: 0,
-    due_date: '',
-    score: 0,
-    scheduled_date: getToday(),
-    slot: nextSlot,
-    time_slot: '',
-    completed: false,
-    scoreable: true,
-    created_at: new Date().toISOString()
-  });
+    if (alreadyScheduled) {
+      showToast('Already in Top 6');
+      return;
+    }
 
-  showToast('Added to Top 6');
+    const nextSlot = [1, 2, 3, 4, 5, 6].find(s => !getScheduledSlot(s));
+
+    if (!nextSlot) {
+      showToast('Top 6 is full');
+      return;
+    }
+
+    await createItem({
+      type: 'schedule',
+      title: task.title,
+      priority: 0,
+      due_date: '',
+      score: 0,
+      scheduled_date: getToday(),
+      slot: nextSlot,
+      time_slot: '',
+      completed: false,
+      scoreable: true,
+      created_at: new Date().toISOString()
+    });
+
+    showToast('Added to Top 6');
+  } finally {
+    addBtn.disabled = false;
+    addBtn.style.opacity = '1';
+  }
 };
-
         fragment.appendChild(el);
       });
 
