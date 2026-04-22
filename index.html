@@ -6,8 +6,6 @@
   <title>Top 6 Dashboard</title>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore-compat.js"></script>
-<script src="https://cdn.tailwindcss.com/3.4.17"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
@@ -44,28 +42,11 @@
       #panel-schedule { flex: 0 0 auto; overflow-y: visible; border-top: 1px solid #e0d5d3; }
       .panel-section { overflow-y: visible; }
     }
-    @media (max-width: 1023px) {
+   @media (max-width: 1023px) {
   .panels-grid {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-  }
-
-  #panel-top6,
-  #panel-time-schedule,
-  #panel-schedule {
-    width: 100%;
-    border-right: none !important;
-    border-top: none !important;
-    display: flex;
-    flex-direction: column;
-  }
-
-  #schedule-slots,
-  #time-schedule-blocks,
-  #daily-schedule {
-    max-height: none !important;
-    overflow-y: visible !important;
   }
 }
     ::-webkit-scrollbar { width: 6px; }
@@ -79,7 +60,7 @@
     <h1 id="app-title" class="text-lg font-bold tracking-tight" style="font-family:'Playfair Display',serif; color:#5a4a4f;">Top 6 &amp; Day Scheduler</h1>
     <div class="flex items-center gap-4"><!-- View Switcher -->
      <div class="flex gap-2 rounded-lg p-1" style="background:rgba(255,255,255,0.3);"><button id="view-dashboard-btn" class="px-3 py-1.5 text-xs font-semibold rounded transition-all" style="background:#fff; color:#5a4a4f; border:none; cursor:pointer;">Dashboard</button> <button id="view-transactions-btn" class="px-3 py-1.5 text-xs font-semibold rounded transition-all" style="background:transparent; color:#8b7a80; border:none; cursor:pointer;">Transactions</button>
-     </div><input type="date" id="date-picker" class="text-sm rounded-lg px-3 py-1.5 border-0 outline-none" style="background:#d9c8d8; color:#5a4a4f;"> <span id="day-label" class="text-xs font-medium" style="color:#6a5a5f;"></span>
+     </div> type="date" id="date-picker" class="text-sm rounded-lg px-3 py-1.5 border-0 outline-none" style="background:#d9c8d8; color:#5a4a4f;"> <span id="day-label" class="text-xs font-medium" style="color:#6a5a5f;"></span>
     </div>
    </header><!-- DASHBOARD VIEW -->
    <div id="dashboard-view" class="flex flex-col flex-1 overflow-hidden">
@@ -101,7 +82,7 @@
 <label class="text-xs px-2 py-1 rounded cursor-pointer"
   style="background:#b89aa0; color:#fff;">
   Import
-  <input type="file" accept=".json" onchange="(event)" style="display:none;">
+  <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
 </label>
 	  
     <span id="task-count" class="text-xs px-2 py-0.5 rounded-full"
@@ -562,11 +543,6 @@ document.getElementById('panel-time-schedule').classList.toggle('hidden', !showS
 document.getElementById('panel-schedule').classList.toggle('hidden', !showSchedule);
 document.getElementById('panel-scoring').classList.toggle('hidden', !showScoring);
 document.getElementById('panel-monthly').classList.toggle('hidden', !showMonthly);
-
-if (window.innerWidth >= 1024) {
-  document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('hidden'));
-  document.querySelectorAll('.panel-section').forEach(p => p.classList.add('lg:flex'));
-}
 
 	if (window.innerWidth >= 1024) {
  	 document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('hidden'));
