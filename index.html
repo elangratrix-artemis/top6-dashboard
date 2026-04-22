@@ -255,6 +255,16 @@ let draggedScheduleId = null;
     function transactions() { return allData.filter(d => d.type === 'transaction').sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); }
     function getTransactionSettings() { return allData.find(d => d.type === 'transaction_settings') || null; }
 
+	function makeTop6ScheduleDocId(title, date) {
+  const safeTitle = title
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-_]/g, '');
+
+  return `schedule_${date}_${safeTitle}`;
+}  
+	  
 	function exportData() {
   const dataStr = JSON.stringify(allData, null, 2);
   const blob = new Blob([dataStr], { type: 'application/json' });
@@ -394,11 +404,35 @@ async function loadData() {
 }
 
 async function createItem(item) {
+  // Prevent duplicate Top 6 entries for the same day + title
+  if (item.type === 'schedule' && item.scoreable === true) {
+    const docId = makeTop6ScheduleDocId(item.title, item.scheduled_date);
+
+    const existingDoc = await db.collection('top6Data').doc(docId).get();
+    if (existingDoc.exists) {
+      return { isOk: false, reason: 'duplicate' };
+    }
+
+    await db.collection('top6Data').doc(docId).set(item);
+
+    const newItem = {
+      __backendId: docId,
+      ...item
+    };
+
+    allData.push(newItem);
+    renderAll();
+    return { isOk: true };
+  }
+
+  // Everything else keeps random Firestore IDs
   const docRef = await db.collection('top6Data').add(item);
+
   allData.push({
     __backendId: docRef.id,
     ...item
   });
+
   renderAll();
   return { isOk: true };
 }
@@ -953,7 +987,26 @@ window.addEventListener('resize', applyMobileTabState);
       created_at: new Date().toISOString()
     });
 
-    showToast('Added to Top 6');
+    const result = await createItem({
+  type: 'schedule',
+  title: task.title,
+  priority: 0,
+  due_date: '',
+  score: 0,
+  scheduled_date: getToday(),
+  slot: nextSlot,
+  time_slot: '',
+  completed: false,
+  scoreable: true,
+  created_at: new Date().toISOString()
+});
+
+if (!result.isOk && result.reason === 'duplicate') {
+  showToast('Already in Top 6');
+  return;
+}
+
+showToast('Added to Top 6');
   } finally {
     addBtn.disabled = false;
     addBtn.style.opacity = '1';
