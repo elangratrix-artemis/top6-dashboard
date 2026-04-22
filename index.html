@@ -1344,7 +1344,15 @@ checkbox.addEventListener('click', async (e) => {
 
     function renderScoring() {
       const container = document.getElementById('scoring-list');
-      const scheduled = scheduledToday().filter(s => s.scoreable === true).sort((a, b) => a.slot - b.slot);
+      const scheduled = scheduledToday()
+  .filter(s => s.scoreable === true)
+  .filter((item, index, arr) =>
+    index === arr.findIndex(other =>
+      other.title === item.title &&
+      other.scheduled_date === item.scheduled_date
+    )
+  )
+  .sort((a, b) => a.slot - b.slot);
 
 	container.innerHTML = '';	
 
@@ -1384,7 +1392,15 @@ checkbox.addEventListener('click', async (e) => {
     }
 
     function updateScoreTotal() {
-      const scheduled = scheduledToday().filter(s => s.scoreable === true).sort((a, b) => a.slot - b.slot);
+      const scheduled = scheduledToday()
+  .filter(s => s.scoreable === true)
+  .filter((item, index, arr) =>
+    index === arr.findIndex(other =>
+      other.title === item.title &&
+      other.scheduled_date === item.scheduled_date
+    )
+  )
+  .sort((a, b) => a.slot - b.slot);
       let totalScore = 0;
       scheduled.forEach(item => {
         totalScore += item.score || 0;
