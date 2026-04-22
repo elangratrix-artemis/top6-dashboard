@@ -836,11 +836,18 @@ window.addEventListener('resize', applyMobileTabState);
     function renderMasterList() {
       const container = document.getElementById('master-list');
       const sortBy = document.getElementById('sort-by').value;
-      const tasks = sortTasks(masterTasks(), sortBy);
+      const allTasks = sortTasks(masterTasks(), sortBy);
+const tasks = allTasks.filter(task => !completedScheduledIds.has(task.title));
       document.getElementById('task-count').textContent = tasks.length;
 
       const existingMap = new Map([...container.children].map(el => [el.dataset.id, el]));
-      const scheduledIds = new Set(scheduledToday().map(s => s.title));
+      const todayScheduled = scheduledToday().filter(s => s.scoreable === true);
+const scheduledIds = new Set(todayScheduled.map(s => s.title));
+const completedScheduledIds = new Set(
+  todayScheduled
+    .filter(s => s.completed)
+    .map(s => s.title)
+);
 
       container.innerHTML = '';
       const fragment = document.createDocumentFragment();
