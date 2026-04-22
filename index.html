@@ -113,7 +113,7 @@
      <div class="panels-upper"><!-- TOP 6 -->
       <section id="panel-top6" class="panel-section p-4 flex flex-col hidden lg:flex" style="background:#f4ebe7; border-right:1px solid #e0cfd3;">
        <h2 id="heading-top6" class="text-base font-bold mb-3" style="color:#6a5a5f; font-family:'Playfair Display',serif;">Today's Top 6</h2>
-       <p class="text-xs mb-3" style="color:#b89aa0;">Drag tasks from master list. Click stars to score each one.</p>
+       <p class="text-xs mb-3" style="color:#b89aa0;">Drag tasks from master list. Check a task when it is complete.</p>
        <div id="schedule-slots" class="flex-1 space-y-2 overflow-y-auto"></div><button id="clear-schedule-btn" class="mt-3 text-xs font-medium py-2 rounded-lg" style="background:#f4ebe7; color:#b89aa0;">Clear Top 6</button>
       </section><!-- SCORING -->
       <section id="panel-scoring" class="panel-section p-4 flex flex-col hidden lg:flex" style="background:#f7ede8; border-right:1px solid #e0cfd3;">
@@ -1060,11 +1060,12 @@ window.addEventListener('resize', applyMobileTabState);
                   <span class="text-sm font-bold rounded-full w-5 h-5 flex items-center justify-center" style="background:#d4a5a8; color:#fff;">${i}</span>
                   <span class="text-sm font-medium" style="color:#4a4a4a;">${escHtml(scheduled.title)}</span>
                 </div>
-                <div class="flex items-center gap-0.5 stars-row ml-6">
-                  ${Array.from({length: maxPoints}, (_, idx) => idx + 1).map(s => `
-                    <span class="star" data-score="${s}" style="cursor:pointer; color:${s <= (scheduled.score || 0) ? '#d4a5a8' : '#e8dcd9'}; font-size:1.25rem; transition:all 0.15s;">★</span>
-                  `).join('')}
-                </div>
+                <div class="ml-6">
+  <label class="flex items-center gap-2 text-sm" style="color:#4a4a4a; cursor:pointer;">
+    <input type="checkbox" class="complete-checkbox" ${scheduled.completed ? 'checked' : ''}>
+    <span>Complete</span>
+  </label>
+</div>
               </div>
               <button class="remove-slot p-1 rounded" style="color:#b89aa0; flex-shrink:0;" title="Remove">
                 <i data-lucide="x" style="width:14px;height:14px;"></i>
@@ -1087,19 +1088,17 @@ window.addEventListener('resize', applyMobileTabState);
  	 draggedScheduleId = null;
 	});
 
-          el.querySelectorAll('.star').forEach(star => {
-            star.addEventListener('click', async (e) => {
-              e.stopPropagation();
-              const newScore = parseInt(star.dataset.score);
-              scheduled.score = newScore;
-              el.querySelectorAll('.star').forEach(s => {
-                s.style.color = parseInt(s.dataset.score) <= newScore ? '#d4a5a8' : '#e8dcd9';
-              });
-              await updateItem(scheduled);
-              updateScoringDisplay(scheduled);
-              updateScoreTotal();
-            });
-          });
+		const checkbox = el.querySelector('.complete-checkbox');
+checkbox.addEventListener('click', async (e) => {
+  e.stopPropagation();
+
+  scheduled.completed = checkbox.checked;
+  scheduled.score = checkbox.checked ? maxPoints : 0;
+
+  await updateItem(scheduled);
+  updateScoringDisplay(scheduled);
+  updateScoreTotal();
+});
           el.querySelector('.remove-slot').onclick = async (e) => {
             e.stopPropagation();
             await deleteItem(scheduled);
