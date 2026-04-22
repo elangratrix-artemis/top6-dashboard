@@ -414,16 +414,15 @@ async function createItem(item) {
     }
 
     await db.collection('top6Data').doc(docId).set(item);
-
-    const newItem = {
-      __backendId: docId,
-      ...item
-    };
-
-    allData.push(newItem);
-    renderAll();
+    await loadData();
     return { isOk: true };
   }
+
+  // Everything else
+  await db.collection('top6Data').add(item);
+  await loadData();
+  return { isOk: true };
+}
 
   // Everything else keeps random Firestore IDs
   const docRef = await db.collection('top6Data').add(item);
@@ -440,23 +439,13 @@ async function createItem(item) {
 async function updateItem(updatedItem) {
   const { __backendId, ...data } = updatedItem;
   await db.collection('top6Data').doc(__backendId).set(data);
-
-  allData = allData.map(item =>
-    item.__backendId === __backendId ? updatedItem : item
-  );
-
-  renderAll();
+  await loadData();
   return { isOk: true };
 }
 
 async function deleteItem(itemToDelete) {
   await db.collection('top6Data').doc(itemToDelete.__backendId).delete();
-
-  allData = allData.filter(item =>
-    item.__backendId !== itemToDelete.__backendId
-  );
-
-  renderAll();
+  await loadData();
   return { isOk: true };
 }
     // ========== ELEMENT SDK ==========
