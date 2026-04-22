@@ -834,23 +834,26 @@ window.addEventListener('resize', applyMobileTabState);
     const collapsedMonths = new Set();
 
     function renderMasterList() {
-      const container = document.getElementById('master-list');
-      const sortBy = document.getElementById('sort-by').value;
-      const allTasks = sortTasks(masterTasks(), sortBy);
-const tasks = allTasks.filter(task => !completedScheduledIds.has(task.title));
-      document.getElementById('task-count').textContent = tasks.length;
+  const container = document.getElementById('master-list');
+  const sortBy = document.getElementById('sort-by').value;
 
-      const existingMap = new Map([...container.children].map(el => [el.dataset.id, el]));
-      const todayScheduled = scheduledToday().filter(s => s.scoreable === true);
-const scheduledIds = new Set(todayScheduled.map(s => s.title));
-const completedScheduledIds = new Set(
-  todayScheduled
-    .filter(s => s.completed)
-    .map(s => s.title)
-);
+  const todayScheduled = scheduledToday().filter(s => s.scoreable === true);
+  const scheduledIds = new Set(todayScheduled.map(s => s.title));
+  const completedScheduledIds = new Set(
+    todayScheduled
+      .filter(s => s.completed)
+      .map(s => s.title)
+  );
 
-      container.innerHTML = '';
-      const fragment = document.createDocumentFragment();
+  const allTasks = sortTasks(masterTasks(), sortBy);
+  const tasks = allTasks.filter(task => !completedScheduledIds.has(task.title));
+
+  document.getElementById('task-count').textContent = tasks.length;
+
+  const existingMap = new Map([...container.children].map(el => [el.dataset.id, el]));
+
+  container.innerHTML = '';
+  const fragment = document.createDocumentFragment();
 
       if (tasks.length === 0) {
         container.innerHTML = '<div class="text-center py-8 text-sm" style="color:#7a8fa3;">No tasks yet. Add one above!</div>';
