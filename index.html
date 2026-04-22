@@ -523,33 +523,46 @@ async function deleteItem(itemToDelete) {
     });
 
     // ========== TABS (mobile) ==========
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        activeTab = btn.dataset.tab;
-        document.querySelectorAll('.tab-btn').forEach(b => {
-          const active = b.dataset.tab === activeTab;
-          b.style.color = active ? '#c8a882' : '#8b7860';
-          b.style.borderBottomColor = active ? '#c8a882' : 'transparent';
-          b.style.fontWeight = active ? '600' : '500';
-        });
-        const showMaster = activeTab === 'master';
-const showSchedule = activeTab === 'schedule';
-const showScoring = activeTab === 'scoring';
-const showMonthly = activeTab === 'monthly';
+   // ========== TABS (mobile) ==========
+function applyMobileTabState() {
+  const isDesktop = window.innerWidth >= 1024;
 
-document.getElementById('panel-master').classList.toggle('hidden', !showMaster);
-document.getElementById('panel-top6').classList.toggle('hidden', !showSchedule);
-document.getElementById('panel-time-schedule').classList.toggle('hidden', !showSchedule);
-document.getElementById('panel-schedule').classList.toggle('hidden', !showSchedule);
-document.getElementById('panel-scoring').classList.toggle('hidden', !showScoring);
-document.getElementById('panel-monthly').classList.toggle('hidden', !showMonthly);
-
-	if (window.innerWidth >= 1024) {
- 	 document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('hidden'));
- 	 document.querySelectorAll('.panel-section').forEach(p => p.classList.add('lg:flex'));
-	}
-      });
+  if (isDesktop) {
+    document.querySelectorAll('.panel-section').forEach(p => {
+      p.classList.remove('hidden');
+      p.classList.add('lg:flex');
     });
+    return;
+  }
+
+  const showMaster = activeTab === 'master';
+  const showSchedule = activeTab === 'schedule';
+  const showScoring = activeTab === 'scoring';
+  const showMonthly = activeTab === 'monthly';
+
+  document.getElementById('panel-master').classList.toggle('hidden', !showMaster);
+  document.getElementById('panel-top6').classList.toggle('hidden', !showSchedule);
+  document.getElementById('panel-time-schedule').classList.toggle('hidden', !showSchedule);
+  document.getElementById('panel-schedule').classList.toggle('hidden', !showSchedule);
+  document.getElementById('panel-scoring').classList.toggle('hidden', !showScoring);
+  document.getElementById('panel-monthly').classList.toggle('hidden', !showMonthly);
+
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const active = b.dataset.tab === activeTab;
+    b.style.color = active ? '#c8a882' : '#8b7860';
+    b.style.borderBottomColor = active ? '#c8a882' : 'transparent';
+    b.style.fontWeight = active ? '600' : '500';
+  });
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeTab = btn.dataset.tab;
+    applyMobileTabState();
+  });
+});
+
+window.addEventListener('resize', applyMobileTabState);
 
     // ========== ADD TASK ==========
     let selectedPriority = 1;
@@ -1971,5 +1984,6 @@ document.getElementById('panel-monthly').classList.toggle('hidden', !showMonthly
       }
     });
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f05aefcb05c8380',t:'MTc3Njg3MTk3MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();renderAll();loadData();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f05aefcb05c8380',t:'MTc3Njg3MTk3MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();renderAll();applyMobileTabState();
+loadData();</script></body>
 </html>
