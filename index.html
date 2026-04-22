@@ -951,7 +951,6 @@ window.addEventListener('resize', applyMobileTabState);
 	addBtn.onclick = async (e) => {
   e.stopPropagation();
 
-  // prevent double click while request is in flight
   if (addBtn.disabled) return;
   addBtn.disabled = true;
   addBtn.style.opacity = '0.6';
@@ -973,7 +972,7 @@ window.addEventListener('resize', applyMobileTabState);
       return;
     }
 
-    await createItem({
+    const result = await createItem({
       type: 'schedule',
       title: task.title,
       priority: 0,
@@ -987,26 +986,12 @@ window.addEventListener('resize', applyMobileTabState);
       created_at: new Date().toISOString()
     });
 
-    const result = await createItem({
-  type: 'schedule',
-  title: task.title,
-  priority: 0,
-  due_date: '',
-  score: 0,
-  scheduled_date: getToday(),
-  slot: nextSlot,
-  time_slot: '',
-  completed: false,
-  scoreable: true,
-  created_at: new Date().toISOString()
-});
+    if (!result.isOk && result.reason === 'duplicate') {
+      showToast('Already in Top 6');
+      return;
+    }
 
-if (!result.isOk && result.reason === 'duplicate') {
-  showToast('Already in Top 6');
-  return;
-}
-
-showToast('Added to Top 6');
+    showToast('Added to Top 6');
   } finally {
     addBtn.disabled = false;
     addBtn.style.opacity = '1';
