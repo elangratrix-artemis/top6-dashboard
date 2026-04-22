@@ -424,17 +424,6 @@ async function createItem(item) {
   return { isOk: true };
 }
 
-  // Everything else keeps random Firestore IDs
-  const docRef = await db.collection('top6Data').add(item);
-
-  allData.push({
-    __backendId: docRef.id,
-    ...item
-  });
-
-  renderAll();
-  return { isOk: true };
-}
 
 async function updateItem(updatedItem) {
   const { __backendId, ...data } = updatedItem;
