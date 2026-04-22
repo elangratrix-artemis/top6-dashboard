@@ -73,7 +73,12 @@
       style="background:#d4a5a8; color:#fff;">
       Export
     </button>
-
+<label class="text-xs px-2 py-1 rounded cursor-pointer"
+  style="background:#b89aa0; color:#fff;">
+  Import
+  <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
+</label>
+	  
     <span id="task-count" class="text-xs px-2 py-0.5 rounded-full"
       style="background:#d4a5a8; color:#fff;">
       0
@@ -256,6 +261,36 @@ let draggedScheduleId = null;
 
   showToast('Backup downloaded');
 }
+
+	function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      if (!Array.isArray(data)) {
+        showToast('Invalid file');
+        return;
+      }
+
+      // overwrite current data
+      allData = data;
+      saveData(allData);
+      renderAll();
+
+      showToast('Data imported');
+    } catch (err) {
+      showToast('Import failed');
+    }
+  };
+
+  reader.readAsText(file);
+}
+	  
     function sortTasks(tasks, sortBy) {
       const sorted = [...tasks];
       if (sortBy === 'due-date') {
