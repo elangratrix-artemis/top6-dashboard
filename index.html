@@ -64,8 +64,22 @@
     <div class="panels-grid flex-1 overflow-y-auto"><!-- MASTER LIST -->
      <section id="panel-master" class="panel-section p-4 flex flex-col" style="background:#f7ede8; border-right:1px solid #e0cfd3; min-height: 0;">
       <div class="flex items-center justify-between mb-3 flex-shrink-0">
-       <h2 id="heading-master" class="text-base font-bold" style="color:#6a5a5f; font-family:'Playfair Display',serif;">Master List</h2><span id="task-count" class="text-xs px-2 py-0.5 rounded-full" style="background:#d4a5a8; color:#fff;">0</span>
-      </div><!-- Add Task -->
+  <h2 id="heading-master" class="text-base font-bold" style="color:#6a5a5f; font-family:'Playfair Display',serif;">
+    Master List
+  </h2>
+
+  <div class="flex items-center gap-2">
+    <button onclick="exportData()" class="text-xs px-2 py-1 rounded"
+      style="background:#d4a5a8; color:#fff;">
+      Export
+    </button>
+
+    <span id="task-count" class="text-xs px-2 py-0.5 rounded-full"
+      style="background:#d4a5a8; color:#fff;">
+      0
+    </span>
+  </div>
+</div><!-- Add Task -->
       <form id="add-task-form" class="flex flex-col gap-2 mb-3 text-xs flex-shrink-0"><input id="new-task-input" type="text" placeholder="Task title…" class="rounded-lg px-3 py-2 outline-none border" style="background:#fff; color:#4a4a4a; border-color:#e0cfd3;" required>
        <div class="flex gap-2">
         <div class="flex-1 grid grid-cols-2 gap-1"><button type="button" class="priority-btn rounded-lg py-1.5 font-semibold text-xs border" data-priority="1" style="background:#d8e6d3; color:#5a6a52; border-color:#d8e6d3;">1</button> <button type="button" class="priority-btn rounded-lg py-1.5 font-semibold text-xs border" data-priority="2" style="background:#f0d4df; color:#7a5a6a; border-color:#f0d4df;">2</button> <button type="button" class="priority-btn rounded-lg py-1.5 font-semibold text-xs border" data-priority="3" style="background:#f0dcc8; color:#7a6a52; border-color:#f0dcc8;">3</button> <button type="button" class="priority-btn rounded-lg py-1.5 font-semibold text-xs border" data-priority="4" style="background:#d9e5f0; color:#5a6a7a; border-color:#d9e5f0;">4</button>
@@ -228,6 +242,20 @@ let draggedScheduleId = null;
     function transactions() { return allData.filter(d => d.type === 'transaction').sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); }
     function getTransactionSettings() { return allData.find(d => d.type === 'transaction_settings') || null; }
 
+	function exportData() {
+  const dataStr = JSON.stringify(allData, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'top6-backup.json';
+  a.click();
+
+  URL.revokeObjectURL(url);
+
+  showToast('Backup downloaded');
+}
     function sortTasks(tasks, sortBy) {
       const sorted = [...tasks];
       if (sortBy === 'due-date') {
