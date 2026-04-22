@@ -45,8 +45,40 @@
       .panel-section { overflow-y: visible; }
     }
     @media (max-width: 1023px) {
-      .panels-grid { display: flex; flex-direction: column; overflow-y: auto; }
-    }
+  .panels-grid {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  #panel-top6,
+  #panel-time-schedule,
+  #panel-schedule,
+  #panel-scoring,
+  #panel-monthly,
+  #panel-master {
+    width: 100%;
+    border-right: none !important;
+    border-top: none !important;
+  }
+
+  #panel-top6,
+  #panel-time-schedule,
+  #panel-schedule {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #schedule-slots,
+  #time-schedule-blocks,
+  #daily-schedule,
+  #scoring-list,
+  #monthly-list,
+  #master-list {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #d4a5a8; border-radius: 3px; }
   </style>
@@ -531,18 +563,21 @@ async function deleteItem(itemToDelete) {
           b.style.fontWeight = active ? '600' : '500';
         });
         const showMaster = activeTab === 'master';
-	const showSchedule = activeTab === 'schedule';
-	const showScoring = activeTab === 'scoring';
-	const showMonthly = activeTab === 'monthly';
+const showSchedule = activeTab === 'schedule';
+const showScoring = activeTab === 'scoring';
+const showMonthly = activeTab === 'monthly';
 
-	document.getElementById('panel-master').classList.toggle('hidden', !showMaster);
-	document.getElementById('panel-top6').classList.toggle('hidden', !showSchedule);
-	document.getElementById('panel-schedule').classList.toggle('hidden', !showSchedule);
-	document.getElementById('panel-scoring').classList.toggle('hidden', !showScoring);
-	document.getElementById('panel-monthly').classList.toggle('hidden', !showMonthly);
+document.getElementById('panel-master').classList.toggle('hidden', !showMaster);
+document.getElementById('panel-top6').classList.toggle('hidden', !showSchedule);
+document.getElementById('panel-time-schedule').classList.toggle('hidden', !showSchedule);
+document.getElementById('panel-schedule').classList.toggle('hidden', !showSchedule);
+document.getElementById('panel-scoring').classList.toggle('hidden', !showScoring);
+document.getElementById('panel-monthly').classList.toggle('hidden', !showMonthly);
 
-	// keep time blocks hidden on mobile for now
-	document.getElementById('panel-time-schedule').classList.add('hidden');
+if (window.innerWidth >= 1024) {
+  document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('hidden'));
+  document.querySelectorAll('.panel-section').forEach(p => p.classList.add('lg:flex'));
+}
 
 	if (window.innerWidth >= 1024) {
  	 document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('hidden'));
