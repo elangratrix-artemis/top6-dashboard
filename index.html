@@ -1,0 +1,1892 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Top 6 Dashboard</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    * { font-family: 'DM Sans', sans-serif; }
+    .slot-drop { transition: background 0.2s, border-color 0.2s; }
+    .slot-drop.drag-over { border-color: #d4a5a8 !important; background: rgba(212,165,168,0.15) !important; }
+    .task-card { cursor: grab; transition: box-shadow 0.15s, transform 0.15s; }
+    .task-card:active { cursor: grabbing; }
+    .task-card.dragging { opacity: 0.5; transform: scale(0.97); }
+    .star { cursor: pointer; transition: color 0.12s, transform 0.12s; font-size: 1.5rem; }
+    .star:hover { transform: scale(1.2); }
+    .priority-pip { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .toast-msg {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      padding: 10px 24px; border-radius: 12px; font-size: 14px; font-weight: 500;
+      z-index: 999; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toast-msg.show { opacity: 1; }
+    .tab-btn { transition: all 0.2s; }
+    .time-block { transition: background 0.2s; }
+    .time-block.drag-over { background: rgba(212,165,168,0.15) !important; border-color: #d4a5a8 !important; }
+    .chart-bar { transition: width 0.3s ease; }
+    .schedule-hour { min-height: 80px; }
+    @media (min-width: 1024px) {
+      .panels-grid { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow-y: auto; }
+      #panel-master { display: flex; flex-direction: column; min-height: 0; overflow: visible; border-right: none; border-bottom: 1px solid #e0d5d3; flex: 0 0 auto; }
+      .panels-upper { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 0; flex: 0 0 auto; min-height: 0; overflow: visible; }
+      #panel-top6 { overflow-y: visible; border-right: 1px solid #e0d5d3; }
+      #panel-scoring { overflow-y: visible; border-right: 1px solid #e0d5d3; }
+      #panel-time-schedule { overflow-y: visible; }
+      #panel-schedule { flex: 0 0 auto; overflow-y: visible; border-top: 1px solid #e0d5d3; }
+      .panel-section { overflow-y: visible; }
+    }
+    @media (max-width: 1023px) {
+      .panels-grid { display: flex; flex-direction: column; overflow-y: auto; }
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #d4a5a8; border-radius: 3px; }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full overflow-y-auto" style="margin: 0; padding: 0;">
+  <div id="app-wrapper" class="w-full flex flex-col" style="background:#faf7f6; color:#4a4a4a; display:flex; flex-direction:column; height: 100%; overflow-y: auto;"><!-- Header -->
+   <header class="flex items-center justify-between px-5 py-3 flex-shrink-0 sticky top-0 z-10" style="background: linear-gradient(135deg, #e8d4d8 0%, #d9c8d8 100%); border-bottom:1px solid #e0cfd3;">
+    <h1 id="app-title" class="text-lg font-bold tracking-tight" style="font-family:'Playfair Display',serif; color:#5a4a4f;">Top 6 &amp; Day Scheduler</h1>
+    <div class="flex items-center gap-4"><!-- View Switcher -->
+     <div class="flex gap-2 rounded-lg p-1" style="background:rgba(255,255,255,0.3);"><button id="view-dashboard-btn" class="px-3 py-1.5 text-xs font-semibold rounded transition-all" style="background:#fff; color:#5a4a4f; border:none; cursor:pointer;">Dashboard</button> <button id="view-transactions-btn" class="px-3 py-1.5 text-xs font-semibold rounded transition-all" style="background:transparent; color:#8b7a80; border:none; cursor:pointer;">Transactions</button>
+     </div><input type="date" id="date-picker" class="text-sm rounded-lg px-3 py-1.5 border-0 outline-none" style="background:#d9c8d8; color:#5a4a4f;"> <span id="day-label" class="text-xs font-medium" style="color:#6a5a5f;"></span>
+    </div>
+   </header><!-- DASHBOARD VIEW -->
+   <div id="dashboard-view" class="flex flex-col flex-1 overflow-hidden">
+    <!-- Mobile Tabs -->
+    <div class="lg:hidden flex border-b flex-shrink-0 overflow-x-auto" style="background:#e6d9d9; border-color:#9db4d4;"><button class="tab-btn flex-1 py-2.5 text-sm font-semibold whitespace-nowrap" data-tab="master" style="color:#9db4d4; border-bottom:2px solid #9db4d4;">Master List</button> <button class="tab-btn flex-1 py-2.5 text-sm font-medium whitespace-nowrap" data-tab="scoring" style="color:#7a8fa3; border-bottom:2px solid transparent;">Score</button> <button class="tab-btn flex-1 py-2.5 text-sm font-medium whitespace-nowrap" data-tab="schedule" style="color:#7a8fa3; border-bottom:2px solid transparent;">Schedule</button> <button class="tab-btn flex-1 py-2.5 text-sm font-medium whitespace-nowrap" data-tab="monthly" style="color:#7a8fa3; border-bottom:2px solid transparent;">Monthly</button>
+    </div><!-- Panels -->
+    <div class="panels-grid flex-1 overflow-y-auto"><!-- MASTER LIST -->
+     <section id="panel-master" class="panel-section p-4 flex flex-col" style="background:#f7ede8; border-right:1px solid #e0cfd3; min-height: 0;">
+      <div class="flex items-center justify-between mb-3 flex-shrink-0">
+       <h2 id="heading-master" class="text-base font-bold" style="color:#6a5a5f; font-family:'Playfair Display',serif;">Master List</h2><span id="task-count" class="text-xs px-2 py-0.5 rounded-full" style="background:#d4a5a8; color:#fff;">0</span>
+      </div><!-- Add Task -->
+      <form id="add-task-form" class="flex flex-col gap-2 mb-3 text-xs flex-shrink-0"><input id="new-task-input" type="text" placeholder="Task title…" class="rounded-lg px-3 py-2 outline-none border" style="background:#fff; color:#4a4a4a; border-color:#e0cfd3;" required>
+       <div class="flex gap-2">
+        <div class="flex-1 grid grid-cols-2 gap-1"><button type="button" class="priority-btn rounded-lg py-1.5 font-semibold text-xs border" data-priority="1" style="background:#d8e6d3; color:#5a6a52; border-color:#d8e6d3;">1</button> <button type="button" class="priority-btn rounded-lg py-1.5 font-semibold text-xs border" data-priority="2" style="background:#f0d4df; color:#7a5a6a; border-color:#f0d4df;">2</button> <button type="button" class="priority-btn rounded-lg py-1.5 font-semibold text-xs border" data-priority="3" style="background:#f0dcc8; color:#7a6a52; border-color:#f0dcc8;">3</button> <button type="button" class="priority-btn rounded-lg py-1.5 font-semibold text-xs border" data-priority="4" style="background:#d9e5f0; color:#5a6a7a; border-color:#d9e5f0;">4</button>
+        </div><input id="new-task-entered" type="date" class="flex-1 rounded-lg px-2 py-1.5 outline-none border" style="background:#fff; color:#4a4a4a; border-color:#e0cfd3;" required title="Date entered"> <input id="new-task-due" type="date" class="flex-1 rounded-lg px-2 py-1.5 outline-none border" style="background:#fff; color:#4a4a4a; border-color:#e0cfd3;" required title="Due date"> <button type="submit" class="rounded-lg px-3 py-2 font-semibold" style="background:#d4a5a8; color:#fff;"> <i data-lucide="plus" style="width:16px;height:16px;"></i> </button>
+       </div>
+      </form><!-- Sort Controls -->
+      <div class="flex gap-2 mb-3 text-xs flex-shrink-0"><select id="sort-by" class="flex-1 rounded-lg px-2 py-1.5 outline-none border" style="background:#fff; color:#4a4347; border-color:#9db4d4;"> <option value="priority">Sort by Priority</option> <option value="due-date">Sort by Due Date</option> </select>
+      </div><!-- Master List Container -->
+      <div id="master-list" class="overflow-y-auto space-y-1.5" style="min-height: 220px; max-height: 260px; border: 1px solid #9db4d4; border-radius: 8px; padding: 8px; background: #fff;"></div>
+      <div id="limit-warning" class="hidden mt-2 text-xs text-center rounded-lg p-2 flex-shrink-0" style="background:#d4a5a0; color:#5c2a2a;">
+       Item limit reached (999). Delete some tasks first.
+      </div>
+      <div class="mt-2 pt-2 border-t flex-shrink-0" style="border-color:#9db4d4;">
+       <button id="chart-toggle" class="w-full flex items-center justify-between text-xs font-bold mb-1.5 px-0 py-1 hover:opacity-75 transition-opacity" style="color:#3d3d3d; background:none; border:none; cursor:pointer;"> <span>Priority Overview</span> <i data-lucide="chevron-down" style="width:14px;height:14px; transition:transform 0.2s;"></i> </button>
+       <div id="chart-container" class="hidden space-y-1.5 text-xs"></div>
+      </div>
+     </section>
+     <div class="panels-upper"><!-- TOP 6 -->
+      <section id="panel-top6" class="panel-section p-4 flex flex-col hidden lg:flex" style="background:#f4ebe7; border-right:1px solid #e0cfd3;">
+       <h2 id="heading-top6" class="text-base font-bold mb-3" style="color:#6a5a5f; font-family:'Playfair Display',serif;">Today's Top 6</h2>
+       <p class="text-xs mb-3" style="color:#b89aa0;">Drag tasks from master list. Click stars to score each one.</p>
+       <div id="schedule-slots" class="flex-1 space-y-2 overflow-y-auto"></div><button id="clear-schedule-btn" class="mt-3 text-xs font-medium py-2 rounded-lg" style="background:#f4ebe7; color:#b89aa0;">Clear Top 6</button>
+      </section><!-- SCORING -->
+      <section id="panel-scoring" class="panel-section p-4 flex flex-col hidden lg:flex" style="background:#f7ede8; border-right:1px solid #e0cfd3;">
+       <h2 id="heading-scoring" class="text-base font-bold mb-3" style="color:#6a5a5f; font-family:'Playfair Display',serif;">End-of-Day Score</h2>
+       <p class="text-xs mb-3" style="color:#b89aa0;">Check tasks complete to earn points.</p>
+       <div id="scoring-list" class="flex-1 space-y-2 overflow-y-auto"></div>
+       <div id="total-score" class="mt-3 text-center py-3 rounded-xl" style="background:#f4ebe7;">
+        <div class="text-xs font-medium" style="color:#b89aa0;">
+         Today's Score
+        </div>
+        <div id="score-value" class="text-2xl font-bold" style="color:#d4a5a8; font-family:'Playfair Display',serif;">
+         0 / 21
+        </div>
+       </div>
+      </section><!-- TIME BLOCKS -->
+      <section id="panel-time-schedule" class="panel-section p-4 flex flex-col hidden lg:flex" style="background:#f7ede8;">
+       <h2 id="heading-time-schedule" class="text-base font-bold mb-2" style="color:#6a5a5f; font-family:'Playfair Display',serif;">Time Blocks</h2>
+       <p class="text-xs mb-3" style="color:#b89aa0;">Drag top 6 tasks or create custom blocks.</p><!-- Add Custom Time Block Form -->
+       <form id="add-custom-time-block" class="mb-3 p-3 rounded-lg" style="background:#fff; border:1px solid #e0cfd3;">
+        <div class="text-xs font-semibold mb-2" style="color:#6a5a5f;">
+         + New Time Block
+        </div>
+        <div class="flex flex-col gap-2 text-xs">
+         <input type="text" placeholder="Block name…" class="custom-block-name rounded-lg px-2 py-1.5 outline-none border" style="background:#f7ede8; color:#4a4a4a; border-color:#e0cfd3;" required>
+         <div class="flex gap-2">
+          <input type="time" class="custom-block-time flex-1 rounded-lg px-2 py-1.5 outline-none border" style="background:#f7ede8; color:#4a4a4a; border-color:#e0cfd3;" required> <select class="custom-block-duration flex-1 rounded-lg px-2 py-1.5 outline-none border" style="background:#f7ede8; color:#4a4a4a; border-color:#e0cfd3;"> <option value="15">15 min</option> <option value="30" selected>30 min</option> <option value="45">45 min</option> <option value="60">1 hour</option> <option value="90">1.5 hrs</option> <option value="120">2 hours</option> </select> <button type="submit" class="rounded-lg px-3 py-1.5 font-semibold" style="background:#d4a5a8; color:#fff;"> <i data-lucide="plus" style="width:14px;height:14px;"></i> </button>
+         </div>
+        </div>
+       </form>
+       <div id="time-schedule-blocks" class="flex-1 space-y-1.5 overflow-y-auto"></div>
+      </section>
+     </div><!-- FULL DAY SCHEDULE -->
+     <section id="panel-schedule" class="panel-section p-4 flex flex-col hidden lg:flex" style="background:#f7ede8;">
+      <h2 id="heading-schedule" class="text-base font-bold mb-3" style="color:#6a5a5f; font-family:'Playfair Display',serif;">Full Day Schedule</h2>
+      <p class="text-xs mb-3" style="color:#b89aa0;">Write in your schedule or drag time blocks below.</p>
+      <div id="daily-schedule" class="flex-1 overflow-y-auto space-y-1"></div>
+     </section><!-- MONTHLY SCORES -->
+     <section id="panel-monthly" class="panel-section p-4 flex flex-col hidden lg:flex" style="background:#f4ebe7;">
+      <h2 class="text-base font-bold mb-3" style="color:#6a5a5f; font-family:'Playfair Display',serif;">Monthly Scores</h2>
+      <p class="text-xs mb-3" style="color:#b89aa0;">Track your daily performance by month.</p>
+      <div id="monthly-list" class="flex-1 space-y-2 overflow-y-auto"></div>
+     </section>
+    </div>
+   </div><!-- END DASHBOARD VIEW --> <!-- TRANSACTIONS VIEW -->
+   <div id="transactions-view" class="hidden flex flex-col flex-1 overflow-hidden">
+    <div class="flex-1 overflow-y-auto">
+     <section class="p-4 flex flex-col" style="background:#f7ede8; flex:1;">
+      <h2 class="text-base font-bold mb-2" style="color:#6a5a5f; font-family:'Playfair Display',serif;">Transactions</h2>
+      <p class="text-xs mb-4" style="color:#b89aa0;">Track your financial transactions and running total.</p><!-- Starting Balance Section -->
+      <div class="p-4 rounded-lg mb-4 flex-shrink-0" style="background:#f4ebe7; border:2px solid #d4a5a8;">
+       <div class="text-xs font-medium mb-2" style="color:#6a5a5f;">
+        Starting Balance
+       </div>
+       <div class="flex gap-2 items-center">
+        <span class="text-sm" style="color:#b89aa0;">$</span> <input id="starting-balance-input" type="number" step="0.01" placeholder="0.00" class="flex-1 rounded-lg px-3 py-2 outline-none border" style="background:#fff; color:#4a4a4a; border-color:#e0cfd3;"> <button id="save-starting-balance-btn" class="rounded-lg px-4 py-2 font-semibold" style="background:#d4a5a8; color:#fff; flex-shrink:0;"> <i data-lucide="check" style="width:14px;height:14px; display:inline;"></i> </button>
+       </div>
+      </div><!-- Transaction Form -->
+      <form id="add-transaction-form" class="p-4 rounded-lg mb-4 flex-shrink-0" style="background:#fff; border:1px solid #e0cfd3;">
+       <div class="text-xs font-semibold mb-3" style="color:#6a5a5f;">
+        Add Transaction
+       </div>
+       <div class="flex flex-col gap-3 text-xs">
+        <div class="grid grid-cols-3 gap-3">
+         <div><label class="text-xs font-medium mb-1 block" style="color:#6a5a5f;">Amount</label> <input id="transaction-amount" type="number" step="0.01" placeholder="0.00" class="w-full rounded-lg px-3 py-2 outline-none border" style="background:#f7ede8; color:#4a4a4a; border-color:#e0cfd3;" required>
+         </div>
+         <div><label class="text-xs font-medium mb-1 block" style="color:#6a5a5f;">Date</label> <input id="transaction-date" type="date" class="w-full rounded-lg px-3 py-2 outline-none border" style="background:#f7ede8; color:#4a4a4a; border-color:#e0cfd3;" required>
+         </div>
+         <div><label class="text-xs font-medium mb-1 block" style="color:#6a5a5f;">Reason</label> <input id="transaction-reason" type="text" placeholder="Description" class="w-full rounded-lg px-3 py-2 outline-none border" style="background:#f7ede8; color:#4a4a4a; border-color:#e0cfd3;" required>
+         </div>
+        </div><button type="submit" class="w-full rounded-lg py-2 font-semibold" style="background:#d4a5a8; color:#fff;"> <i data-lucide="plus" style="width:14px;height:14px; display:inline; margin-right:6px;"></i> Add Transaction </button>
+       </div>
+      </form><!-- Summary -->
+      <div class="rounded-lg p-4 mb-4 flex-shrink-0" style="background:#fff; border:2px solid #d4a5a8;">
+       <div class="text-xs font-medium mb-1" style="color:#b89aa0;">
+        Total Balance
+       </div>
+       <div id="transaction-total" class="text-3xl font-bold" style="color:#d4a5a8; font-family:'Playfair Display',serif;">
+        $0.00
+       </div>
+      </div><!-- Transaction List -->
+      <div class="flex-1 overflow-y-auto">
+       <div id="transaction-list" class="space-y-2"></div>
+      </div>
+     </section>
+    </div>
+   </div><!-- END TRANSACTIONS VIEW --> <!-- Toast -->
+   <div id="toast" class="toast-msg" style="background:#9db4d4; color:#fff;"></div>
+  </div>
+  <script>
+    // ========== STATE ==========
+    let allData = [];
+    let currentDate = new Date().toISOString().split('T')[0];
+    let activeTab = 'master';
+    let activeView = 'dashboard';
+    let draggedTaskId = null;
+let draggedScheduleId = null;
+
+    const defaultConfig = {
+      app_title: 'Top 6 & Day Scheduler',
+      master_list_heading: 'Master List',
+      schedule_heading: 'Today\'s Top 6',
+      daily_schedule_heading: 'Full Day Schedule',
+      scoring_heading: 'End-of-Day Score',
+      chart_heading: 'Priority Overview',
+      background_color: '#faf7f6',
+      surface_color: '#d4a5a8',
+      text_color: '#4a4a4a',
+      primary_action_color: '#d4a5a8',
+      secondary_action_color: '#b89aa0',
+      accent_blue: '#d9e5f0',
+      accent_green: '#d8e6d3',
+      accent_pink: '#f0d4df',
+      accent_orange: '#f0dcc8',
+      font_family: 'DM Sans',
+      font_size: 14
+    };
+
+    const PRIORITY_COLORS = {
+      1: '#d8e6d3',  // Important, Not Urgent - green
+      2: '#f0d4df',  // Important & Urgent - pink
+      3: '#f0dcc8',  // Not Important & Urgent - orange
+      4: '#d9e5f0'   // Not Important, Not Urgent - blue
+    };
+
+    const PRIORITY_LABELS = {
+      1: 'Important, Not Urgent',
+      2: 'Important & Urgent',
+      3: 'Not Important & Urgent',
+      4: 'Not Important, Not Urgent'
+    };
+
+    const HOURS = ['6am', '7am', '8am', '9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm', '9pm'];
+
+    // ========== HELPERS ==========
+    function getToday() { return currentDate; }
+    function masterTasks() { return allData.filter(d => d.type === 'task'); }
+    function scheduledToday() { return allData.filter(d => d.type === 'schedule' && d.scheduled_date === getToday()); }
+    function getScheduledSlot(slot) { return scheduledToday().find(s => s.slot === slot); }
+    function transactions() { return allData.filter(d => d.type === 'transaction').sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); }
+    function getTransactionSettings() { return allData.find(d => d.type === 'transaction_settings') || null; }
+
+    function sortTasks(tasks, sortBy) {
+      const sorted = [...tasks];
+      if (sortBy === 'due-date') {
+        return sorted.sort((a, b) => {
+          if (!a.due_date) return 1;
+          if (!b.due_date) return -1;
+          return new Date(a.due_date) - new Date(b.due_date);
+        });
+      } else {
+        return sorted.sort((a, b) => {
+          const priorityOrder = { 2: 0, 1: 1, 3: 2, 4: 3 };
+          return (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+        });
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+    function formatDateOnly(dateStr) {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const localDate = new Date(year, month - 1, day);
+      return localDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function isDateOverdue(dateStr, currentDateStr) {
+      if (!dateStr || !currentDateStr) return false;
+      const [y1, m1, d1] = dateStr.split('-').map(Number);
+      const [y2, m2, d2] = currentDateStr.split('-').map(Number);
+      const due = new Date(y1, m1 - 1, d1);
+      const current = new Date(y2, m2 - 1, d2);
+      return due < current;
+    }
+
+    function updateViewToggle() {
+      const dashboardView = document.getElementById('dashboard-view');
+      const transactionsView = document.getElementById('transactions-view');
+      const dashboardBtn = document.getElementById('view-dashboard-btn');
+      const transactionsBtn = document.getElementById('view-transactions-btn');
+
+      if (activeView === 'dashboard') {
+        dashboardView.classList.remove('hidden');
+        transactionsView.classList.add('hidden');
+        dashboardBtn.style.background = '#fff';
+        dashboardBtn.style.color = '#5a4a4f';
+        transactionsBtn.style.background = 'transparent';
+        transactionsBtn.style.color = '#8b7a80';
+      } else {
+        dashboardView.classList.add('hidden');
+        transactionsView.classList.remove('hidden');
+        dashboardBtn.style.background = 'transparent';
+        dashboardBtn.style.color = '#8b7a80';
+        transactionsBtn.style.background = '#fff';
+        transactionsBtn.style.color = '#5a4a4f';
+      }
+    }
+// ========== LOCAL STORAGE DATA ==========
+function loadData() {
+  return JSON.parse(localStorage.getItem('top6Data') || '[]');
+}
+
+function saveData(data) {
+  localStorage.setItem('top6Data', JSON.stringify(data));
+}
+
+// Initialize data on load
+allData = loadData();
+
+// Create
+async function createItem(item) {
+  const data = loadData();
+  const newItem = {
+    ...item,
+    __backendId: crypto.randomUUID()
+  };
+  data.push(newItem);
+  saveData(data);
+  allData = data;
+  renderAll();
+  return { isOk: true };
+}
+
+// Update
+async function updateItem(updatedItem) {
+  const data = loadData().map(item =>
+    item.__backendId === updatedItem.__backendId ? updatedItem : item
+  );
+  saveData(data);
+  allData = data;
+  renderAll();
+  return { isOk: true };
+}
+
+// Delete
+async function deleteItem(itemToDelete) {
+  const data = loadData().filter(item =>
+    item.__backendId !== itemToDelete.__backendId
+  );
+  saveData(data);
+  allData = data;
+  renderAll();
+  return { isOk: true };
+}
+    // ========== ELEMENT SDK ==========
+    if (window.elementSdk) window.elementSdk.init({
+      defaultConfig,
+      onConfigChange: async (config) => {
+        const c = key => config[key] || defaultConfig[key];
+        document.getElementById('app-title').textContent = c('app_title');
+        document.getElementById('heading-master').textContent = c('master_list_heading');
+        document.querySelectorAll('[id^="heading-"]').forEach(el => {
+          if (el.id === 'heading-master') el.textContent = c('master_list_heading');
+          else if (el.id === 'heading-top6') el.textContent = c('schedule_heading');
+          else if (el.id === 'heading-schedule') el.textContent = c('daily_schedule_heading');
+          else if (el.id === 'heading-scoring') el.textContent = c('scoring_heading');
+          else if (el.id === 'heading-time-schedule') el.textContent = 'Time Blocks';
+        });
+
+        const bg = c('background_color');
+        const surface = c('surface_color');
+        const text = c('text_color');
+        const primary = c('primary_action_color');
+        const secondary = c('secondary_action_color');
+        const font = c('font_family');
+        const size = c('font_size');
+
+        document.getElementById('app-wrapper').style.background = bg;
+        document.getElementById('app-wrapper').style.color = '#1a1a1a';
+        document.getElementById('app-wrapper').style.fontFamily = `${font}, DM Sans, sans-serif`;
+        document.getElementById('app-wrapper').style.fontSize = size + 'px';
+
+        document.querySelectorAll('[style*="font-family"]').forEach(el => {
+          if (el.style.fontFamily.includes('Playfair')) {
+            el.style.fontFamily = `Playfair Display, ${font}, serif`;
+          }
+        });
+
+        document.querySelectorAll('h1, h2').forEach(el => el.style.color = '#3d3d3d');
+        document.querySelector('header').style.background = surface;
+
+        renderAll();
+      },
+      mapToCapabilities: (config) => {
+        const c = key => config[key] || defaultConfig[key];
+        const mut = (key) => ({
+          get: () => c(key),
+          set: (v) => { config[key] = v; window.elementSdk.setConfig({ [key]: v }); }
+        });
+        return {
+          recolorables: [
+            mut('background_color'),
+            mut('surface_color'),
+            mut('text_color'),
+            mut('primary_action_color'),
+            mut('secondary_action_color'),
+            mut('accent_blue'),
+            mut('accent_green'),
+            mut('accent_pink'),
+            mut('accent_orange')
+          ],
+          borderables: [],
+          fontEditable: mut('font_family'),
+          fontSizeable: mut('font_size')
+        };
+      },
+      mapToEditPanelValues: (config) => new Map([
+        ['app_title', config.app_title || defaultConfig.app_title],
+        ['master_list_heading', config.master_list_heading || defaultConfig.master_list_heading],
+        ['schedule_heading', config.schedule_heading || defaultConfig.schedule_heading],
+        ['daily_schedule_heading', config.daily_schedule_heading || defaultConfig.daily_schedule_heading],
+        ['scoring_heading', config.scoring_heading || defaultConfig.scoring_heading],
+        ['chart_heading', config.chart_heading || defaultConfig.chart_heading]
+      ])
+    });
+
+    // ========== DATE PICKER ==========
+    const datePicker = document.getElementById('date-picker');
+    datePicker.value = currentDate;
+    updateDayLabel();
+
+    datePicker.addEventListener('change', () => {
+      currentDate = datePicker.value;
+      updateDayLabel();
+      renderAll();
+    });
+
+    function updateDayLabel() {
+      const d = new Date(currentDate + 'T12:00:00');
+      document.getElementById('day-label').textContent = d.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+
+    // ========== VIEW SWITCHER ==========
+    document.getElementById('view-dashboard-btn').addEventListener('click', () => {
+      activeView = 'dashboard';
+      updateViewToggle();
+    });
+
+    document.getElementById('view-transactions-btn').addEventListener('click', () => {
+      activeView = 'transactions';
+      updateViewToggle();
+    });
+
+    // ========== TABS (mobile) ==========
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeTab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          const active = b.dataset.tab === activeTab;
+          b.style.color = active ? '#c8a882' : '#8b7860';
+          b.style.borderBottomColor = active ? '#c8a882' : 'transparent';
+          b.style.fontWeight = active ? '600' : '500';
+        });
+        const showMaster = activeTab === 'master';
+	const showSchedule = activeTab === 'schedule';
+	const showScoring = activeTab === 'scoring';
+	const showMonthly = activeTab === 'monthly';
+
+	document.getElementById('panel-master').classList.toggle('hidden', !showMaster);
+	document.getElementById('panel-top6').classList.toggle('hidden', !showSchedule);
+	document.getElementById('panel-schedule').classList.toggle('hidden', !showSchedule);
+	document.getElementById('panel-scoring').classList.toggle('hidden', !showScoring);
+	document.getElementById('panel-monthly').classList.toggle('hidden', !showMonthly);
+
+	// keep time blocks hidden on mobile for now
+	document.getElementById('panel-time-schedule').classList.add('hidden');
+
+	if (window.innerWidth >= 1024) {
+ 	 document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('hidden'));
+ 	 document.querySelectorAll('.panel-section').forEach(p => p.classList.add('lg:flex'));
+	}
+      });
+    });
+
+    // ========== ADD TASK ==========
+    let selectedPriority = 1;
+
+    document.querySelectorAll('.priority-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        selectedPriority = parseInt(btn.dataset.priority);
+        document.querySelectorAll('.priority-btn').forEach(b => {
+          b.style.opacity = '0.5';
+        });
+        btn.style.opacity = '1';
+      });
+    });
+    document.querySelector('.priority-btn').style.opacity = '1';
+
+    document.getElementById('add-task-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('new-task-input');
+      const title = input.value.trim();
+      if (!title) return;
+
+      const enteredDate = document.getElementById('new-task-entered').value;
+      const dueDate = document.getElementById('new-task-due').value;
+      
+      if (!enteredDate || !dueDate) {
+        showToast('Please fill in both dates');
+        return;
+      }
+
+      if (allData.length >= 999) {
+        document.getElementById('limit-warning').classList.remove('hidden');
+        return;
+      }
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+
+      const result = await createItem({
+        type: 'task',
+        title,
+        priority: selectedPriority,
+        due_date: dueDate,
+        score: 0,
+        scheduled_date: enteredDate,
+        slot: 0,
+        completed: false,
+        created_at: new Date().toISOString()
+      });
+
+      btn.disabled = false;
+      btn.style.opacity = '1';
+
+      if (result.isOk) {
+        input.value = '';
+        document.getElementById('new-task-entered').value = '';
+        document.getElementById('new-task-due').value = '';
+        document.querySelectorAll('.priority-btn').forEach(b => b.style.opacity = '0.5');
+        document.querySelector('.priority-btn').style.opacity = '1';
+        selectedPriority = 1;
+        showToast('Task added');
+      } else {
+        showToast('Failed to add task');
+      }
+    });
+
+    // ========== CLEAR SCHEDULE ==========
+    document.getElementById('clear-schedule-btn').addEventListener('click', async () => {
+      const scheduled = scheduledToday();
+      for (const s of scheduled) {
+        await deleteItem(s);
+      }
+      showToast('Schedule cleared');
+    });
+
+    // ========== ADD CUSTOM TIME BLOCK ==========
+    document.getElementById('add-custom-time-block').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInput = e.target.querySelector('.custom-block-name');
+      const timeInput = e.target.querySelector('.custom-block-time');
+      const durationSelect = e.target.querySelector('.custom-block-duration');
+      
+      const name = nameInput.value.trim();
+      const time = timeInput.value;
+      const duration = parseInt(durationSelect.value);
+
+      if (!name || !time) {
+        showToast('Please fill in all fields');
+        return;
+      }
+
+      if (allData.length >= 999) {
+        showToast('Item limit reached');
+        return;
+      }
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+
+      const result = await createItem({
+        type: 'schedule',
+        title: name,
+        priority: 0,
+        due_date: '',
+        score: 0,
+        scheduled_date: getToday(),
+        slot: 0,
+        time_slot: time,
+        duration: duration,
+        completed: false,
+        scoreable: false,
+        created_at: new Date().toISOString()
+      });
+
+      btn.disabled = false;
+      btn.style.opacity = '1';
+
+      if (result.isOk) {
+        nameInput.value = '';
+        timeInput.value = '';
+        durationSelect.value = '30';
+        showToast('Time block created');
+      } else {
+        showToast('Failed to create time block');
+      }
+    });
+
+    // ========== ADD TRANSACTION ==========
+    document.getElementById('add-transaction-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const amountInput = document.getElementById('transaction-amount');
+      const dateInput = document.getElementById('transaction-date');
+      const reasonInput = document.getElementById('transaction-reason');
+
+      const amount = parseFloat(amountInput.value);
+      const date = dateInput.value;
+      const reason = reasonInput.value.trim();
+
+      if (!amount || amount === 0) {
+        showToast('Please enter an amount');
+        return;
+      }
+
+      if (!date) {
+        showToast('Please select a date');
+        return;
+      }
+
+      if (!reason) {
+        showToast('Please enter a reason');
+        return;
+      }
+
+      if (allData.length >= 999) {
+        showToast('Item limit reached');
+        return;
+      }
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+
+      const result = await createItem({
+        type: 'transaction',
+        amount: amount,
+        reason: reason,
+        date: date,
+        created_at: new Date().toISOString()
+      });
+
+      btn.disabled = false;
+      btn.style.opacity = '1';
+
+      if (result.isOk) {
+        amountInput.value = '';
+        dateInput.value = currentDate;
+        reasonInput.value = '';
+        showToast('Transaction added');
+      } else {
+        showToast('Failed to add transaction');
+      }
+    });
+
+    // Set transaction date to today
+    document.getElementById('transaction-date').value = currentDate;
+
+    // ========== STARTING BALANCE ==========
+    document.getElementById('save-starting-balance-btn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('starting-balance-input');
+      const newBalance = parseFloat(input.value) || 0;
+
+      const btn = e.target.closest('button');
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+
+      const existingSettings = getTransactionSettings();
+
+      if (existingSettings) {
+        // Update existing settings
+        const updatedSettings = {
+ 	 ...existingSettings,
+  	starting_balance: newBalance
+	};
+        const result = await updateItem(updatedSettings);
+        if (result.isOk) {
+          showToast('Starting balance updated');
+          renderTransactions();
+        } else {
+          showToast('Failed to save');
+        }
+      } else {
+        // Create new settings
+        if (allData.length >= 999) {
+          showToast('Item limit reached');
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          return;
+        }
+        const result = await createItem({
+          type: 'transaction_settings',
+          starting_balance: newBalance,
+          created_at: new Date().toISOString()
+        });
+        if (result.isOk) {
+          showToast('Starting balance saved');
+          renderTransactions();
+        } else {
+          showToast('Failed to save');
+        }
+      }
+
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    });
+
+    // ========== RENDER ==========
+    function renderAll() {
+      updateViewToggle();
+      renderMasterList();
+      renderScheduleSlots();
+      renderTimeSchedule();
+      renderDailySchedule();
+      renderScoring();
+      renderChart();
+      renderMonthlyScores();
+      renderTransactions();
+      document.getElementById('limit-warning').classList.toggle('hidden', allData.length < 999);
+    }
+
+    // Track monthly breakdown collapse states
+    const collapsedMonths = new Set();
+
+    function renderMasterList() {
+      const container = document.getElementById('master-list');
+      const sortBy = document.getElementById('sort-by').value;
+      const tasks = sortTasks(masterTasks(), sortBy);
+      document.getElementById('task-count').textContent = tasks.length;
+
+      const existingMap = new Map([...container.children].map(el => [el.dataset.id, el]));
+      const scheduledIds = new Set(scheduledToday().map(s => s.title));
+
+      container.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+
+      if (tasks.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-sm" style="color:#7a8fa3;">No tasks yet. Add one above!</div>';
+        return;
+      }
+
+      tasks.forEach(task => {
+        const id = task.__backendId;
+        const isScheduled = scheduledIds.has(task.title);
+        const dueDateStr = task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+
+        const el = document.createElement('div');
+        el.dataset.id = id;
+        el.className = 'task-card flex flex-col gap-1 px-3 py-2 rounded-lg';
+        el.style.background = '#fff';
+        el.style.cursor = 'grab';
+        el.draggable = true;
+
+        el.addEventListener('dragstart', (e) => {
+  	draggedTaskId = task.title;
+	  draggedScheduleId = null;
+ 	 el.classList.add('dragging');
+ 	 e.dataTransfer.effectAllowed = 'move';
+	});
+
+        el.addEventListener('dragend', () => {
+  	el.classList.remove('dragging');
+ 	 draggedTaskId = null;
+ 	 draggedScheduleId = null;
+	});
+
+        // Check if task is overdue (compare dates at midnight without timezone conversion)
+        const isOverdue = isDateOverdue(task.due_date, currentDate);
+        const dueDateColor = isOverdue ? '#c0392b' : '#d4a5a8';
+        const dueDateDisplay = formatDateOnly(task.due_date);
+
+        el.innerHTML = `
+          <div class="flex items-center gap-2">
+            <div class="priority-pip" style="background:${PRIORITY_COLORS[task.priority]};" title="${PRIORITY_LABELS[task.priority]}"></div>
+            <span class="flex-1 text-sm truncate" style="opacity:${isScheduled ? '0.5' : '1'}; color:#4a4a4a; font-weight:${isScheduled ? '400' : '500'}">${escHtml(task.title)}</span>
+            <span class="text-xs font-bold rounded px-1.5 py-0.5" style="background:${PRIORITY_COLORS[task.priority]}; color:#6a5a5f;">${task.priority}</span>
+            ${isScheduled ? '<span class="text-xs px-1.5 py-0.5 rounded" style="background:#f4ebe7; color:#b89aa0;">Scheduled</span>' : ''}
+        <button class="add-to-top6 text-xs px-2 py-1 rounded"
+  	style="background:#d4a5a8; color:#fff;">
+  	+ Top 6
+	</button>    
+	<div class="flex items-center gap-0.5 flex-shrink-0">
+              <button class="edit-btn p-1 rounded" title="Edit" style="color:#b89aa0;">
+                <i data-lucide="pencil" style="width:14px;height:14px;"></i>
+              </button>
+              <button class="del-btn p-1 rounded" title="Delete" style="color:#b89aa0;">
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+          </div>
+          ${dueDateDisplay ? `<div class="text-xs" style="color:${dueDateColor}; margin-left:12px; font-weight:${isOverdue ? '600' : '400'};">Due: ${dueDateDisplay}${isOverdue ? ' (OVERDUE)' : ''}</div>` : ''}
+        `;
+
+        const editBtn = el.querySelector('.edit-btn');
+        editBtn.onclick = (e) => {
+          e.stopPropagation();
+          openTaskEditor(task);
+        };
+
+        const delBtn = el.querySelector('.del-btn');
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          delBtn.outerHTML = `<div class="inline-flex items-center gap-1 text-xs">
+            <button class="confirm-yes px-2 py-0.5 rounded font-semibold" style="background:#c0392b; color:#fff;">Yes</button>
+            <button class="confirm-no px-2 py-0.5 rounded font-semibold" style="background:#f5e8e8; color:#7a8fa3;">No</button>
+          </div>`;
+          const confirmYes = el.querySelector('.confirm-yes');
+          const confirmNo = el.querySelector('.confirm-no');
+          confirmYes.onclick = async () => {
+            const result = await deleteItem(task);
+            if (result.isOk) showToast('Deleted');
+          };
+          confirmNo.onclick = () => renderMasterList();
+        };
+	
+	const addBtn = el.querySelector('.add-to-top6');
+
+	addBtn.onclick = async (e) => {
+ 	 e.stopPropagation();
+ 	 const alreadyScheduled = scheduledToday().some(s => s.title === task.title);
+
+ 	 if (alreadyScheduled) {
+ 	   showToast('Already in Top 6');
+  	  return;
+ 	 }
+ 	 const nextSlot = [1,2,3,4,5,6].find(s => !getScheduledSlot(s));
+
+	  if (!nextSlot) {
+  	  showToast('Top 6 is full');
+  	  return;
+	  }
+
+  await createItem({
+    type: 'schedule',
+    title: task.title,
+    priority: 0,
+    due_date: '',
+    score: 0,
+    scheduled_date: getToday(),
+    slot: nextSlot,
+    time_slot: '',
+    completed: false,
+    scoreable: true,
+    created_at: new Date().toISOString()
+  });
+
+  showToast('Added to Top 6');
+};
+
+        fragment.appendChild(el);
+      });
+
+      container.appendChild(fragment);
+      lucide.createIcons();
+    }
+
+    document.getElementById('sort-by').addEventListener('change', () => renderMasterList());
+
+    function renderScheduleSlots() {
+      const container = document.getElementById('schedule-slots');
+      const existing = new Map([...container.children].map(el => [el.dataset.slot, el]));
+
+      for (let i = 1; i <= 6; i++) {
+        const scheduled = getScheduledSlot(i);
+        let el = existing.get(String(i));
+
+        if (!el) {
+          el = document.createElement('div');
+          el.dataset.slot = String(i);
+          el.className = 'slot-drop rounded-xl p-3 border-2 border-dashed';
+          el.style.borderColor = '#d4a5a8';
+          el.style.background = '#fff';
+          el.style.minHeight = '52px';
+
+          el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drag-over'); });
+          el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+      el.addEventListener('drop', async (e) => {
+	  e.preventDefault();
+ 	 el.classList.remove('drag-over');
+
+ 	 const inSlot = getScheduledSlot(i);
+
+ 	 // Moving an existing Top 6 item
+ 	 if (draggedScheduleId) {
+ 	   const existingSchedule = scheduledToday().find(
+  	    s => s.__backendId === draggedScheduleId
+  	  );
+
+  	  if (!existingSchedule) return;
+
+  	  const oldSlot = existingSchedule.slot;
+
+  	  // If dropped on same slot, do nothing
+  	  if (oldSlot === i) {
+   	   draggedTaskId = null;
+   	   draggedScheduleId = null;
+   	   return;
+  	  }
+
+ 	   // Swap with item already in slot
+  	  if (inSlot && inSlot.__backendId !== existingSchedule.__backendId) {
+  	    inSlot.slot = oldSlot;
+  	    await updateItem(inSlot);
+ 	   }
+
+  	  existingSchedule.slot = i;
+ 	   await updateItem(existingSchedule);
+
+  	  draggedTaskId = null;
+  	  draggedScheduleId = null;
+  	  return;
+ 	 }
+
+ 	 // Dragging from master list
+ 	 if (draggedTaskId) {
+  	  if (inSlot) {
+    	  showToast('That slot is already filled');
+    	  draggedTaskId = null;
+    	  draggedScheduleId = null;
+    	  return;
+ 	   }
+
+  	  if (allData.length >= 999) {
+   	   showToast('Limit reached');
+   	   draggedTaskId = null;
+    	  draggedScheduleId = null;
+   	   return;
+  	  }
+
+  	  await createItem({
+   	   type: 'schedule',
+   	   title: draggedTaskId,
+   	   priority: 0,
+    	  due_date: '',
+    	  score: 0,
+    	  scheduled_date: getToday(),
+    	  slot: i,
+    	  time_slot: '',
+    	  completed: false,
+   	   scoreable: true,
+   	   schedule_note: '',
+   	   created_at: new Date().toISOString()
+  	  });
+
+ 	   draggedTaskId = null;
+ 	   draggedScheduleId = null;
+	  }
+	});
+
+          container.appendChild(el);
+        }
+
+        if (scheduled) {
+          el.style.borderStyle = 'solid';
+          el.style.borderColor = '#d4a5a8';
+          const maxPoints = 7 - i;
+          el.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-sm font-bold rounded-full w-5 h-5 flex items-center justify-center" style="background:#d4a5a8; color:#fff;">${i}</span>
+                  <span class="text-sm font-medium" style="color:#4a4a4a;">${escHtml(scheduled.title)}</span>
+                </div>
+                <div class="flex items-center gap-0.5 stars-row ml-6">
+                  ${Array.from({length: maxPoints}, (_, idx) => idx + 1).map(s => `
+                    <span class="star" data-score="${s}" style="cursor:pointer; color:${s <= (scheduled.score || 0) ? '#d4a5a8' : '#e8dcd9'}; font-size:1.25rem; transition:all 0.15s;">★</span>
+                  `).join('')}
+                </div>
+              </div>
+              <button class="remove-slot p-1 rounded" style="color:#b89aa0; flex-shrink:0;" title="Remove">
+                <i data-lucide="x" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+          `;
+	el.draggable = true;
+	el.style.cursor = 'grab';
+
+	el.addEventListener('dragstart', (e) => {
+  	draggedTaskId = null;
+ 	 draggedScheduleId = scheduled.__backendId;
+	  el.classList.add('dragging');
+ 	 e.dataTransfer.effectAllowed = 'move';
+	});
+
+	el.addEventListener('dragend', () => {
+ 	 el.classList.remove('dragging');
+ 	 draggedTaskId = null;
+ 	 draggedScheduleId = null;
+	});
+
+          el.querySelectorAll('.star').forEach(star => {
+            star.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              const newScore = parseInt(star.dataset.score);
+              scheduled.score = newScore;
+              el.querySelectorAll('.star').forEach(s => {
+                s.style.color = parseInt(s.dataset.score) <= newScore ? '#d4a5a8' : '#e8dcd9';
+              });
+              await updateItem(scheduled);
+              updateScoringDisplay(scheduled);
+              updateScoreTotal();
+            });
+          });
+          el.querySelector('.remove-slot').onclick = async (e) => {
+            e.stopPropagation();
+            await deleteItem(scheduled);
+            updateScoreTotal();
+            showToast('Removed from schedule');
+          };
+        } else {
+          el.style.borderStyle = 'dashed';
+          el.style.borderColor = '#d4a5a8';
+          el.innerHTML = `
+            <div class="flex items-center gap-2" style="color:#d4a5a8;">
+              <span class="text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" style="background:#f7ede8; color:#b89aa0;">${i}</span>
+              <span class="text-sm">Drop task here</span>
+            </div>
+          `;
+        }
+      }
+
+      lucide.createIcons();
+    }
+
+    function renderTimeSchedule() {
+      const container = document.getElementById('time-schedule-blocks');
+      const scheduled = scheduledToday().filter(t => t.type === 'schedule').sort((a, b) => (a.slot || 999) - (b.slot || 999));
+
+      const existingMap = new Map([...container.children].map(el => [el.dataset.id, el]));
+
+      // Clear old elements
+      container.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+
+      if (scheduled.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'text-center py-8 text-sm';
+        emptyDiv.style.color = '#7a8fa3';
+        emptyDiv.textContent = 'Add to Top 6 or create custom time blocks below.';
+        fragment.appendChild(emptyDiv);
+      } else {
+        scheduled.forEach((task) => {
+          const el = document.createElement('div');
+          el.dataset.id = task.__backendId;
+          el.className = 'time-block rounded-lg p-3 border-2 border-solid';
+          el.style.borderColor = '#9db4d4';
+          el.style.background = '#fff';
+          el.style.cursor = 'pointer';
+          el.style.transition = 'all 0.2s ease';
+
+          const startTime = task.time_slot || '06:00';
+          const duration = task.duration || 30;
+          const displayStartTime = formatTime24to12(startTime);
+
+          el.innerHTML = `
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-bold" style="color:#4a4a4a;">${escHtml(task.title)}</div>
+                  ${task.slot ? `<div class="text-xs" style="color:#b89aa0;">Top 6 Slot #${task.slot}</div>` : ''}
+                </div>
+                <button class="delete-time-btn p-1.5 rounded" style="color:#b89aa0; background:#f4ebe7;" title="Delete">
+                  <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <div class="flex items-center gap-1">
+                  <i data-lucide="clock" style="width:12px;height:12px; color:#b89aa0;"></i>
+                  <span style="color:#4a4a4a;">${displayStartTime}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <i data-lucide="timer" style="width:12px;height:12px; color:#b89aa0;"></i>
+                  <span style="color:#4a4a4a;">${duration} min</span>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Make card clickable to edit
+          el.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-time-btn')) return;
+            openTimeEditor(task);
+          });
+
+          // Hover effect
+          el.addEventListener('mouseenter', () => {
+            el.style.background = '#f9f5f4';
+            el.style.borderColor = '#d4a5a8';
+            el.style.boxShadow = '0 2px 8px rgba(212,165,168,0.15)';
+          });
+
+          el.addEventListener('mouseleave', () => {
+            el.style.background = '#fff';
+            el.style.borderColor = '#9db4d4';
+            el.style.boxShadow = 'none';
+          });
+
+          const deleteBtn = el.querySelector('.delete-time-btn');
+
+          deleteBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const result = await deleteItem(task);
+            if (result.isOk) showToast('Time block deleted');
+          };
+
+          fragment.appendChild(el);
+        });
+      }
+
+      container.appendChild(fragment);
+      lucide.createIcons();
+    }
+
+    function formatTime24to12(timeStr) {
+      if (!timeStr) return '6:00 AM';
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const displayHour = hours % 12 || 12;
+      const ampm = hours < 12 ? 'AM' : 'PM';
+      return `${displayHour}:${String(minutes).padStart(2, '0')} ${ampm}`;
+    }
+
+    function openTimeEditor(task) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4';
+      modal.style.background = 'rgba(0,0,0,0.4)';
+
+      const startTime = task.time_slot || '06:00';
+      const duration = task.duration || 30;
+
+      modal.innerHTML = `
+        <div class="bg-white rounded-xl p-6 max-w-sm w-full" style="background:#fff;">
+          <h3 class="text-lg font-bold mb-4" style="color:#4a4a4a; font-family:'Playfair Display',serif;">Edit Time Block</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm font-medium mb-1 block" style="color:#6a5a5f;">Start Time</label>
+              <input type="time" id="edit-start-time" value="${startTime}" class="w-full rounded-lg px-3 py-2 border outline-none" style="border-color:#e0cfd3; color:#4a4a4a;">
+            </div>
+            <div>
+              <label class="text-sm font-medium mb-1 block" style="color:#6a5a5f;">Duration (minutes)</label>
+              <select id="edit-duration" class="w-full rounded-lg px-3 py-2 border outline-none" style="border-color:#e0cfd3; color:#4a4a4a;">
+                <option value="15" ${duration === 15 ? 'selected' : ''}>15 minutes</option>
+                <option value="30" ${duration === 30 ? 'selected' : ''}>30 minutes</option>
+                <option value="45" ${duration === 45 ? 'selected' : ''}>45 minutes</option>
+                <option value="60" ${duration === 60 ? 'selected' : ''}>1 hour</option>
+                <option value="90" ${duration === 90 ? 'selected' : ''}>1.5 hours</option>
+                <option value="120" ${duration === 120 ? 'selected' : ''}>2 hours</option>
+              </select>
+            </div>
+            <div class="flex gap-2 pt-2">
+              <button id="modal-cancel" class="flex-1 rounded-lg py-2 font-semibold" style="background:#f4ebe7; color:#b89aa0;">Cancel</button>
+              <button id="modal-save" class="flex-1 rounded-lg py-2 font-semibold" style="background:#d4a5a8; color:#fff;">Save</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      const cancelBtn = modal.querySelector('#modal-cancel');
+      const saveBtn = modal.querySelector('#modal-save');
+      const startInput = modal.querySelector('#edit-start-time');
+      const durationSelect = modal.querySelector('#edit-duration');
+
+      cancelBtn.onclick = () => modal.remove();
+
+      saveBtn.onclick = async () => {
+        const newStartTime = startInput.value;
+        const newDuration = parseInt(durationSelect.value);
+
+        const updatedTask = { ...task, time_slot: newStartTime, duration: newDuration };
+
+        console.log('Before update - Payload:', updatedTask);
+
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = '0.5';
+
+        const result = await updateItem(updatedTask);
+
+        console.log('After update - Result:', result);
+
+        if (result.isOk) {
+          showToast('Time updated');
+          modal.remove();
+        } else {
+          showToast('Failed to save');
+          saveBtn.disabled = false;
+          saveBtn.style.opacity = '1';
+        }
+      };
+
+      modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+      };
+    }
+
+    function renderScoring() {
+      const container = document.getElementById('scoring-list');
+      const scheduled = scheduledToday().filter(s => s.scoreable === true).sort((a, b) => a.slot - b.slot);
+
+	container.innerHTML = '';	
+
+      if (scheduled.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-sm" style="color:#7a8fa3;">Schedule tasks first to score them.</div>';
+        document.getElementById('score-value').textContent = '0 / 21';
+        return;
+      }
+
+      const existingMap = new Map([...container.children].map(el => [el.dataset.id, el]));
+
+      scheduled.forEach(item => {
+        const pointsForSlot = 7 - item.slot;
+        const earnedPoints = item.score || 0;
+        let el = existingMap.get(item.__backendId);
+
+        if (!el) {
+          el = document.createElement('div');
+          el.dataset.id = item.__backendId;
+          el.className = 'rounded-xl p-3';
+          el.style.background = '#fff';
+          container.appendChild(el);
+        }
+
+        el.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 flex-1">
+              <span class="text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" style="background:#d4a5a8; color:#fff;">${item.slot}</span>
+              <span class="text-sm font-medium" style="color:#4a4a4a;">${escHtml(item.title)}</span>
+            </div>
+            <span class="text-xs font-bold px-2 py-1 rounded" style="background:#f4ebe7; color:#b89aa0;">${earnedPoints}/${pointsForSlot}</span>
+          </div>
+        `;
+      });
+
+      updateScoreTotal();
+    }
+
+    function updateScoreTotal() {
+      const scheduled = scheduledToday().filter(s => s.scoreable === true).sort((a, b) => a.slot - b.slot);
+      let totalScore = 0;
+      scheduled.forEach(item => {
+        totalScore += item.score || 0;
+      });
+      document.getElementById('score-value').textContent = `${totalScore} / 21`;
+    }
+
+    function updateScoringDisplay(updatedItem) {
+      const scoringContainer = document.getElementById('scoring-list');
+      const scoringEl = scoringContainer.querySelector(`[data-id="${updatedItem.__backendId}"]`);
+      
+      if (scoringEl) {
+        const pointsForSlot = 7 - updatedItem.slot;
+        const earnedPoints = updatedItem.score || 0;
+        const allSpans = scoringEl.querySelectorAll('span');
+        const scoreDisplay = allSpans[allSpans.length - 1];
+        if (scoreDisplay) {
+          scoreDisplay.textContent = `${earnedPoints}/${pointsForSlot}`;
+        }
+      }
+    }
+
+    function renderChart() {
+      const container = document.getElementById('chart-container');
+      const tasks = masterTasks();
+      
+      const priorityCount = {
+        1: { label: 'Important, Not Urgent', count: 0, color: '#d8e6d3' },
+        2: { label: 'Urgent & Important', count: 0, color: '#f0d4df' },
+        3: { label: 'Urgent, Not Important', count: 0, color: '#f0dcc8' },
+        4: { label: 'Neither', count: 0, color: '#d9e5f0' }
+      };
+
+      tasks.forEach(task => {
+        priorityCount[task.priority].count++;
+      });
+
+      const maxCount = Math.max(...Object.values(priorityCount).map(p => p.count), 1);
+
+      let html = '';
+      for (const [priority, data] of Object.entries(priorityCount)) {
+        const percentage = (data.count / maxCount) * 100;
+        html += `
+          <div class="space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium" style="color:#4a4a4a;">${data.label}</span>
+              <span class="text-sm font-bold" style="color:${data.color};">${data.count}</span>
+            </div>
+            <div class="w-full rounded-full h-3" style="background:#f0e8e5; overflow:hidden;">
+              <div class="chart-bar rounded-full h-full" style="width:${percentage}%; background:${data.color};"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderMonthlyScores() {
+      const container = document.getElementById('monthly-list');
+      
+      // Filter only Top 6 scoreable schedule items (not custom time blocks)
+      const scoreableScheduled = allData.filter(d => 
+        d.type === 'schedule' && 
+        d.scheduled_date && 
+        d.scoreable === true
+      );
+
+      if (scoreableScheduled.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-sm" style="color:#7a8fa3;">No scored Top 6 items yet. Schedule and score tasks to see monthly data.</div>';
+        return;
+      }
+
+      // Group by date, then calculate daily totals
+      const dailyScores = {};
+      scoreableScheduled.forEach(item => {
+        const dateKey = item.scheduled_date; // YYYY-MM-DD
+        if (!dailyScores[dateKey]) {
+          dailyScores[dateKey] = 0;
+        }
+        dailyScores[dateKey] += item.score || 0;
+      });
+
+      // Group daily totals by month
+      const monthlyData = {};
+      Object.entries(dailyScores).forEach(([dateKey, dayScore]) => {
+        const date = new Date(dateKey + 'T12:00:00');
+        const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+        const monthYearKey = date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' });
+        
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            monthYearKey,
+            totalScore: 0,
+            dailyTotals: [],
+            scoredDays: 0,
+            maxScore: 0
+          };
+        }
+        
+        monthlyData[monthKey].totalScore += dayScore;
+        monthlyData[monthKey].dailyTotals.push({ date: dateKey, score: dayScore });
+        monthlyData[monthKey].scoredDays++;
+      });
+
+      // Calculate max score for each month (scored days × 21 points per day)
+      Object.values(monthlyData).forEach(data => {
+        data.maxScore = data.scoredDays * 21;
+      });
+
+      // Sort months in reverse chronological order
+      const sortedMonths = Object.keys(monthlyData).sort((a, b) => {
+        const keyA = monthlyData[a].monthYearKey;
+        const keyB = monthlyData[b].monthYearKey;
+        return keyB.localeCompare(keyA);
+      });
+
+      container.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+
+      sortedMonths.forEach(monthKey => {
+        const data = monthlyData[monthKey];
+        const percentage = data.maxScore > 0 ? Math.round((data.totalScore / data.maxScore) * 100) : 0;
+        const isCollapsed = collapsedMonths.has(monthKey);
+        const monthId = 'month-' + monthKey.replace(/\s+/g, '-');
+
+        const el = document.createElement('div');
+        el.className = 'rounded-xl p-4';
+        el.style.background = '#fff';
+        el.style.borderTop = '4px solid #d4a5a8';
+        el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+
+        el.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between mb-3 gap-3">
+              <div>
+                <div class="text-sm font-bold" style="color:#4a4a4a; font-family:'Playfair Display',serif; margin-bottom:8px;">${monthKey}</div>
+                <div class="flex items-baseline gap-2">
+                  <div class="text-xl font-bold" style="color:#d4a5a8; font-family:'Playfair Display',serif;">${data.totalScore}</div>
+                  <div class="text-xs" style="color:#b89aa0;"> / ${data.maxScore}</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-sm font-bold rounded-full px-3 py-1 mb-2" style="background:#f4ebe7; color:#d4a5a8; display:inline-block;">${percentage}%</div>
+                <div class="text-xs" style="color:#b89aa0; display:block;">
+                  ${data.scoredDays} scored ${data.scoredDays === 1 ? 'day' : 'days'}
+                </div>
+              </div>
+            </div>
+            
+            <button class="breakdown-toggle w-full flex items-center justify-between text-xs font-semibold px-0 py-2 hover:opacity-75 transition-opacity" style="color:#6a5a5f; background:none; border:none; cursor:pointer; border-top:1px solid #f0e8e5; padding-top:8px;">
+              <span>Daily Breakdown</span>
+              <i data-lucide="chevron-down" style="width:14px;height:14px; transition:transform 0.2s; transform:${isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'};"></i>
+            </button>
+            
+            <div class="breakdown-content space-y-1 mt-2" style="display:${isCollapsed ? 'none' : 'block'}; max-height:300px; overflow-y:auto;">
+              ${data.dailyTotals.sort((a, b) => new Date(b.date) - new Date(a.date)).map(daily => {
+                const d = new Date(daily.date + 'T12:00:00');
+                const dayStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' });
+                return `
+                  <div class="flex items-center justify-between text-xs p-1.5 rounded" style="background:#f9f5f4;">
+                    <span style="color:#6a5a5f;">${dayStr}</span>
+                    <span style="color:#d4a5a8; font-weight:600;">${daily.score} / 21</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+
+        const toggleBtn = el.querySelector('.breakdown-toggle');
+        const breakdownContent = el.querySelector('.breakdown-content');
+
+        toggleBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (collapsedMonths.has(monthKey)) {
+            collapsedMonths.delete(monthKey);
+            breakdownContent.style.display = 'block';
+          } else {
+            collapsedMonths.add(monthKey);
+            breakdownContent.style.display = 'none';
+          }
+          const icon = toggleBtn.querySelector('i');
+          icon.style.transform = collapsedMonths.has(monthKey) ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+
+        fragment.appendChild(el);
+      });
+
+      container.appendChild(fragment);
+      lucide.createIcons();
+    }
+
+    function openTaskEditor(task) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4';
+      modal.style.background = 'rgba(0,0,0,0.4)';
+
+      modal.innerHTML = `
+        <div class="bg-white rounded-xl p-6 max-w-sm w-full" style="background:#fff;">
+          <h3 class="text-lg font-bold mb-4" style="color:#4a4a4a; font-family:'Playfair Display',serif;">Edit Task</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm font-medium mb-1 block" style="color:#6a5a5f;">Title</label>
+              <input type="text" id="edit-title" value="${escHtml(task.title)}" class="w-full rounded-lg px-3 py-2 border outline-none" style="border-color:#e0cfd3; color:#4a4a4a;">
+            </div>
+            <div>
+              <label class="text-sm font-medium mb-1 block" style="color:#6a5a5f;">Priority</label>
+              <div class="grid grid-cols-4 gap-2">
+                <button type="button" class="priority-edit-btn rounded-lg py-2 font-semibold text-xs border text-center" data-priority="1" style="background:#d8e6d3; color:#5a6a52; border-color:#d8e6d3; ${task.priority === 1 ? 'opacity:1' : 'opacity:0.5'};">1</button>
+                <button type="button" class="priority-edit-btn rounded-lg py-2 font-semibold text-xs border text-center" data-priority="2" style="background:#f0d4df; color:#7a5a6a; border-color:#f0d4df; ${task.priority === 2 ? 'opacity:1' : 'opacity:0.5'};">2</button>
+                <button type="button" class="priority-edit-btn rounded-lg py-2 font-semibold text-xs border text-center" data-priority="3" style="background:#f0dcc8; color:#7a6a52; border-color:#f0dcc8; ${task.priority === 3 ? 'opacity:1' : 'opacity:0.5'};">3</button>
+                <button type="button" class="priority-edit-btn rounded-lg py-2 font-semibold text-xs border text-center" data-priority="4" style="background:#d9e5f0; color:#5a6a7a; border-color:#d9e5f0; ${task.priority === 4 ? 'opacity:1' : 'opacity:0.5'};">4</button>
+              </div>
+            </div>
+            <input type="hidden" id="edit-priority" value="${task.priority}">
+            <div>
+              <label class="text-sm font-medium mb-1 block" style="color:#6a5a5f;">Date Entered</label>
+              <input type="date" id="edit-entered-date" value="${task.scheduled_date}" class="w-full rounded-lg px-3 py-2 border outline-none" style="border-color:#e0cfd3; color:#4a4a4a;">
+            </div>
+            <div>
+              <label class="text-sm font-medium mb-1 block" style="color:#6a5a5f;">Due Date</label>
+              <input type="date" id="edit-due-date" value="${task.due_date}" class="w-full rounded-lg px-3 py-2 border outline-none" style="border-color:#e0cfd3; color:#4a4a4a;">
+            </div>
+            <div class="flex gap-2 pt-2">
+              <button id="modal-cancel" class="flex-1 rounded-lg py-2 font-semibold" style="background:#f4ebe7; color:#b89aa0;">Cancel</button>
+              <button id="modal-save" class="flex-1 rounded-lg py-2 font-semibold" style="background:#d4a5a8; color:#fff;">Save</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      let selectedEditPriority = task.priority;
+
+      const priorityBtns = modal.querySelectorAll('.priority-edit-btn');
+      priorityBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          selectedEditPriority = parseInt(btn.dataset.priority);
+          priorityBtns.forEach(b => {
+            b.style.opacity = '0.5';
+          });
+          btn.style.opacity = '1';
+        });
+      });
+
+      const cancelBtn = modal.querySelector('#modal-cancel');
+      const saveBtn = modal.querySelector('#modal-save');
+      const titleInput = modal.querySelector('#edit-title');
+      const enteredDateInput = modal.querySelector('#edit-entered-date');
+      const dueDateInput = modal.querySelector('#edit-due-date');
+
+      cancelBtn.onclick = () => modal.remove();
+
+      saveBtn.onclick = async () => {
+        const newTitle = titleInput.value.trim();
+        const newEnteredDate = enteredDateInput.value;
+        const newDueDate = dueDateInput.value;
+
+        if (!newTitle) {
+          showToast('Title cannot be empty');
+          return;
+        }
+
+        if (!newEnteredDate || !newDueDate) {
+          showToast('Please fill in both dates');
+          return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = '0.5';
+
+        const updatedTask = {
+          ...task,
+          title: newTitle,
+          priority: selectedEditPriority,
+          scheduled_date: newEnteredDate,
+          due_date: newDueDate
+        };
+
+        const result = await updateItem(updatedTask);
+
+        if (result.isOk) {
+          showToast('Task updated');
+          modal.remove();
+        } else {
+          showToast('Failed to save');
+          saveBtn.disabled = false;
+          saveBtn.style.opacity = '1';
+        }
+      };
+
+      modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+      };
+    }
+
+    // Chart toggle
+    const chartToggle = document.getElementById('chart-toggle');
+    const chartContainer = document.getElementById('chart-container');
+    chartToggle.addEventListener('click', () => {
+      const isHidden = chartContainer.classList.contains('hidden');
+      chartContainer.classList.toggle('hidden');
+      const icon = chartToggle.querySelector('i');
+      icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    });
+
+    function timeToMinutes(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function slotFallsWithinTask(slotTimeStr, taskStartTimeStr, taskDurationMin) {
+      const slotMinutes = timeToMinutes(slotTimeStr);
+      const taskStartMinutes = timeToMinutes(taskStartTimeStr);
+      const taskEndMinutes = taskStartMinutes + taskDurationMin;
+      return slotMinutes >= taskStartMinutes && slotMinutes < taskEndMinutes;
+    }
+
+    function renderDailySchedule() {
+      const container = document.getElementById('daily-schedule');
+      
+      // Filter tasks for today without timezone issues
+      const todayScheduled = allData.filter(d => 
+        d.type === 'schedule' && 
+        d.scheduled_date === currentDate
+      ).sort((a, b) => a.slot - b.slot);
+
+      container.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+
+      // Generate 15-minute intervals from 6am to 10pm
+      const timeSlots = [];
+      for (let h = 6; h < 22; h++) {
+        for (let m = 0; m < 60; m += 15) {
+          const hour = String(h).padStart(2, '0');
+          const minute = String(m).padStart(2, '0');
+          const timeStr = `${hour}:${minute}`;
+          const displayHour = h % 12 || 12;
+          const ampm = h < 12 ? 'AM' : 'PM';
+          timeSlots.push({
+            timeStr,
+            displayStr: `${displayHour}:${minute} ${ampm}`
+          });
+        }
+      }
+
+      // Split into two columns
+      const mid = Math.ceil(timeSlots.length / 2);
+      const col1 = timeSlots.slice(0, mid);
+      const col2 = timeSlots.slice(mid);
+
+      const wrapper = document.createElement('div');
+      wrapper.style.display = 'grid';
+      wrapper.style.gridTemplateColumns = '1fr 1fr';
+      wrapper.style.gap = '8px';
+
+      const createColumn = (slots) => {
+        const col = document.createElement('div');
+        col.className = 'space-y-1';
+
+        slots.forEach((slot) => {
+          const slotEl = document.createElement('div');
+          slotEl.className = 'schedule-slot rounded-lg border-2';
+          slotEl.dataset.time = slot.timeStr;
+          slotEl.style.borderColor = '#e0cfd3';
+          slotEl.style.background = '#fff';
+          slotEl.style.display = 'flex';
+          slotEl.style.minHeight = '32px';
+
+          // Check if any task spans this time slot
+          const taskInSlot = todayScheduled.find(t => 
+            t.time_slot && slotFallsWithinTask(slot.timeStr, t.time_slot, t.duration || 30)
+          );
+
+          if (taskInSlot) {
+            // Parse completed_slots as JSON (or default to empty object)
+            let completedSlots = {};
+            if (taskInSlot.completed_slots) {
+              try {
+                completedSlots = JSON.parse(taskInSlot.completed_slots);
+              } catch (e) {
+                completedSlots = {};
+              }
+            }
+
+            const isSlotChecked = completedSlots[slot.timeStr] || false;
+            const endTime = calculateEndTime(taskInSlot.time_slot, taskInSlot.duration || 30);
+
+            slotEl.innerHTML = `
+              <div style="display:flex; width:100%; align-items:center; padding:6px 8px; gap:6px; ${isSlotChecked ? 'opacity:0.6;' : ''}">
+                <input type="checkbox" class="schedule-checkbox" data-id="${taskInSlot.__backendId}" data-slot-time="${slot.timeStr}" ${isSlotChecked ? 'checked' : ''} style="cursor:pointer; width:14px; height:14px; flex-shrink:0;">
+                <div style="flex-shrink:0; width:40px; font-weight:500; color:#b89aa0; font-size:10px;">
+                  ${slot.displayStr}
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:600; font-size:11px; color:#4a4a4a; text-decoration:${isSlotChecked ? 'line-through' : 'none'};">${escHtml(taskInSlot.title)}</div>
+                  <div style="font-size:9px; color:#d4a5a8;">${taskInSlot.time_slot} - ${endTime}</div>
+                </div>
+              </div>
+            `;
+
+            const checkbox = slotEl.querySelector('.schedule-checkbox');
+            checkbox.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              const slotTime = checkbox.dataset.slotTime;
+              completedSlots[slotTime] = checkbox.checked;
+              
+              const updatedTask = { 
+                ...taskInSlot, 
+                completed_slots: JSON.stringify(completedSlots)
+              };
+              
+              const result = await updateItem(updatedTask);
+              if (!result.isOk) {
+                checkbox.checked = !checkbox.checked;
+                showToast('Failed to update');
+              } else {
+                renderDailySchedule();
+              }
+            });
+          } else {
+            slotEl.innerHTML = `
+              <div style="display:flex; width:100%; align-items:center; padding:6px 8px; gap:6px;">
+                <div style="flex-shrink:0; width:40px; font-weight:500; color:#b89aa0; font-size:10px;">
+                  ${slot.displayStr}
+                </div>
+                <textarea class="schedule-note" style="flex:1; background:#f7ede8; border:none; outline:none; resize:none; padding:3px 6px; border-radius:4px; font-size:10px; color:#4a4a4a; font-family:DM Sans,sans-serif; line-height:1.2;" placeholder="…"></textarea>
+              </div>
+            `;
+          }
+
+          col.appendChild(slotEl);
+        });
+
+        return col;
+      };
+
+      wrapper.appendChild(createColumn(col1));
+      wrapper.appendChild(createColumn(col2));
+      fragment.appendChild(wrapper);
+
+      container.appendChild(fragment);
+    }
+
+    function calculateEndTime(startTime, durationMinutes) {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      let totalMinutes = hours * 60 + minutes + durationMinutes;
+      const endHours = Math.floor(totalMinutes / 60);
+      const endMinutes = totalMinutes % 60;
+      const hour = endHours % 24;
+      const displayHour = hour % 12 || 12;
+      const ampm = hour < 12 ? 'AM' : 'PM';
+      return `${displayHour}:${String(endMinutes).padStart(2, '0')} ${ampm}`;
+    }
+
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    // ========== RENDER TRANSACTIONS ==========
+    function renderTransactions() {
+      const container = document.getElementById('transaction-list');
+      const settings = getTransactionSettings();
+      const startingBalance = settings ? (settings.starting_balance || 0) : 0;
+      const txns = transactions();
+
+      // Update starting balance input
+      document.getElementById('starting-balance-input').value = startingBalance.toFixed(2);
+
+      container.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+
+      if (txns.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-sm" style="color:#7a8fa3;">No transactions yet. Add one above!</div>';
+        document.getElementById('transaction-total').textContent = '$' + startingBalance.toFixed(2);
+        return;
+      }
+
+      // Calculate final total
+      let finalTotal = startingBalance;
+      txns.forEach(txn => {
+        finalTotal += txn.amount || 0;
+      });
+      document.getElementById('transaction-total').textContent = '$' + finalTotal.toFixed(2);
+
+      // Render each transaction with running total
+      let cumulativeTotal = startingBalance;
+      const sortedTxns = [...txns].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      const txnWithTotals = sortedTxns.map(txn => {
+        const runningTotal = cumulativeTotal + (txn.amount || 0);
+        const result = { ...txn, runningTotal };
+        cumulativeTotal = runningTotal;
+        return result;
+      });
+
+      // Reverse to show newest first
+      txnWithTotals.reverse().forEach(txn => {
+        const el = document.createElement('div');
+        el.dataset.id = txn.__backendId;
+        el.className = 'rounded-lg p-3';
+        el.style.background = '#fff';
+        el.style.borderLeft = '4px solid #d4a5a8';
+
+        const txnDate = new Date(txn.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+
+        el.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium" style="color:#4a4a4a;">${escHtml(txn.reason)}</div>
+              <div class="text-xs mt-1" style="color:#b89aa0;">${txnDate}</div>
+            </div>
+            <div class="flex flex-col items-end gap-1 flex-shrink-0">
+              <div class="text-sm font-bold" style="color:#d4a5a8;">+$${(txn.amount || 0).toFixed(2)}</div>
+              <div class="text-xs px-2 py-0.5 rounded" style="background:#f4ebe7; color:#b89aa0;">Total: $${txn.runningTotal.toFixed(2)}</div>
+            </div>
+            <div class="flex gap-1 flex-shrink-0">
+              <button class="edit-txn p-1 rounded" style="color:#d4a5a8; background:#f7ede8;" title="Edit">
+                <i data-lucide="pencil" style="width:14px;height:14px;"></i>
+              </button>
+              <button class="delete-txn p-1 rounded" style="color:#b89aa0; background:#f7ede8;" title="Delete">
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+          </div>
+        `;
+
+        const editBtn = el.querySelector('.edit-txn');
+        editBtn.onclick = (e) => {
+          e.stopPropagation();
+          openTransactionEditor(txn);
+        };
+
+        const deleteBtn = el.querySelector('.delete-txn');
+        deleteBtn.onclick = async (e) => {
+          e.stopPropagation();
+          const result = await deleteItem(txn);
+          if (result.isOk) showToast('Transaction deleted');
+        };
+
+        fragment.appendChild(el);
+      });
+
+      container.appendChild(fragment);
+      lucide.createIcons();
+    }
+
+    function openTransactionEditor(transaction) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4';
+      modal.style.background = 'rgba(0,0,0,0.4)';
+
+      modal.innerHTML = `
+        <div class="bg-white rounded-xl p-6 max-w-sm w-full" style="background:#fff;">
+          <h3 class="text-lg font-bold mb-4" style="color:#4a4a4a; font-family:'Playfair Display',serif;">Edit Transaction</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm font-medium mb-1 block" style="color:#6a5a5f;">Amount</label>
+              <input type="number" id="edit-txn-amount" step="0.01" value="${(transaction.amount || 0).toFixed(2)}" class="w-full rounded-lg px-3 py-2 border outline-none" style="border-color:#e0cfd3; color:#4a4a4a;">
+            </div>
+            <div>
+              <label class="text-sm font-medium mb-1 block" style="color:#6a5a5f;">Reason</label>
+              <input type="text" id="edit-txn-reason" value="${escHtml(transaction.reason || '')}" class="w-full rounded-lg px-3 py-2 border outline-none" style="border-color:#e0cfd3; color:#4a4a4a;">
+            </div>
+            <div>
+              <label class="text-sm font-medium mb-1 block" style="color:#6a5a5f;">Date</label>
+              <input type="date" id="edit-txn-date" value="${transaction.date || ''}" class="w-full rounded-lg px-3 py-2 border outline-none" style="border-color:#e0cfd3; color:#4a4a4a;">
+            </div>
+            <div class="flex gap-2 pt-2">
+              <button id="modal-cancel" class="flex-1 rounded-lg py-2 font-semibold" style="background:#f4ebe7; color:#b89aa0;">Cancel</button>
+              <button id="modal-save" class="flex-1 rounded-lg py-2 font-semibold" style="background:#d4a5a8; color:#fff;">Save</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      const cancelBtn = modal.querySelector('#modal-cancel');
+      const saveBtn = modal.querySelector('#modal-save');
+      const amountInput = modal.querySelector('#edit-txn-amount');
+      const reasonInput = modal.querySelector('#edit-txn-reason');
+      const dateInput = modal.querySelector('#edit-txn-date');
+
+      cancelBtn.onclick = () => modal.remove();
+
+      saveBtn.onclick = async () => {
+        const newAmount = parseFloat(amountInput.value);
+        const newReason = reasonInput.value.trim();
+        const newDate = dateInput.value;
+
+        if (!newAmount || newAmount === 0) {
+          showToast('Please enter an amount');
+          return;
+        }
+
+        if (!newReason) {
+          showToast('Please enter a reason');
+          return;
+        }
+
+        if (!newDate) {
+          showToast('Please select a date');
+          return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = '0.5';
+
+        const updatedTxn = {
+          ...transaction,
+          amount: newAmount,
+          reason: newReason,
+          date: newDate
+        };
+
+        const result = await updateItem(updatedTxn);
+
+        if (result.isOk) {
+          showToast('Transaction updated');
+          modal.remove();
+        } else {
+          showToast('Failed to save');
+          saveBtn.disabled = false;
+          saveBtn.style.opacity = '1';
+        }
+      };
+
+      modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+      };
+    }
+
+    // Initial render
+    renderAll();
+    lucide.createIcons();
+
+    // Responsive
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 1024) {
+        document.querySelectorAll('.panel-section').forEach(p => { p.classList.remove('hidden'); p.classList.add('lg:flex'); });
+      } else {
+        document.querySelectorAll('.tab-btn').forEach(b => b.click());
+        document.querySelector(`.tab-btn[data-tab="${activeTab}"]`).click();
+      }
+    });
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f05aefcb05c8380',t:'MTc3Njg3MTk3MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();renderAll();</script></body>
+</html>
